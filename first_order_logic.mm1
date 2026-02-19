@@ -48,11 +48,28 @@ term FF: wff;
 --| Contradiction elimination
 axiom FF_elim (a: wff): $ FF => a $;
 
+do {
+    --| Add modus ponens to an s-expression
+    (def (mp_fold l) @ mp_fold_shallow @ mp_fold_deep_only l)
+
+    (def (mp_fold_deep_only l) @
+        if (null? l) '() @
+        if (atom? l) l @
+        cons (mp_fold (hd l)) @ mp_fold_deep_only (tl l))
+    (def (mp_fold_shallow l) @
+        if (null? l) '() @
+        if (atom? l) l @
+        if (null? (tl l)) (hd l) @
+        mp_fold_shallow (cons '(mp ,(hd l) ,(hd @ tl l)) @ tl @ tl l))
+};
+
 --| Identity
 theorem id (a: wff): $ a => a $ = '(mp2 ax_S ax_K (! ax_K _ a));
 theorem into_TT (a: wff): $ a => TT $ = '(mp ax_K TT_intro);
 --| Also the B combinator
 theorem compose (a b c: wff): $ (b => c) => (a => b) => (a => c) $ = '(mp2 ax_S (mp ax_K ax_S) ax_K);
+--| Also the C combinator
+theorem parametrize (a b c: wff): $ (a => b => c) => b => a => c $ = (mp_fold '(ax_S (ax_S (ax_K compose) ax_S) (ax_K ax_K)));
 
 do {
     (def (contains v e) @ match e
@@ -84,19 +101,6 @@ do {
 
     --| Multi-variable FOL lambda abstraction
     (def (lamn vs e) @ if (null? vs) e (lam (hd vs) (lamn (tl vs) e)))
-
-    --| Add modus ponens to an s-expression
-    (def (mp_fold l) @ mp_fold_shallow @ mp_fold_deep_only l)
-
-    (def (mp_fold_deep_only l) @
-        if (null? l) '() @
-        if (atom? l) l @
-        cons (mp_fold (hd l)) @ mp_fold_deep_only (tl l))
-    (def (mp_fold_shallow l) @
-        if (null? l) '() @
-        if (atom? l) l @
-        if (null? (tl l)) (hd l) @
-        mp_fold_shallow (cons '(mp ,(hd l) ,(hd @ tl l)) @ tl @ tl l))
 
     --| FOL lambda abstraction with modus ponens folding
     (def (lamp vs e) (lamn vs (mp_fold e)))
