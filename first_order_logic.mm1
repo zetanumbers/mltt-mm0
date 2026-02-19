@@ -1,34 +1,54 @@
 delimiter $ ( ~ $  $ ) , $;
 
+--| Well-formed formulae, or Hilbert-style proposition
 provable sort wff;
 
+--| Logical implication
 term im: wff > wff > wff;
 infixr im: $=>$ prec 25;
 
+--| Axiom K
 axiom ax_K (a b: wff): $ a => b => a $;
+--| Axiom S
 axiom ax_S (a b c: wff): $ (a => b => c) => (a => b) => (a => c) $;
+--| Modus ponens
 axiom mp (a b: wff): $ a => b $ > $ a $ > $ b $;
+--| Modus ponens 2 times
 theorem mp2 (a b c: wff) (f: $ a => b => c $) (ha: $ a $) (hb: $ b $): $ c $ = '(mp (mp f ha) hb);
+--| Modus ponens 3 times
 theorem mp3 (a b c d: wff) (f: $ a => b => c => d $) (ha: $a$) (hb: $b$) (hc: $c$): $d$ = '(mp (mp (mp f ha) hb) hc);
 
+--| Conjunction
 term conj: wff > wff > wff;
 infixl conj: $/\$ prec 35;
+--| Conjunction introduction
 axiom conj_intro (a b: wff): $ a => b => a /\ b $;
+--| Conjunction first elimination
 axiom conj_elim_1 (a b: wff): $ a /\ b => a $;
+--| Conjunction second elimination
 axiom conj_elim_2 (a b: wff): $ a /\ b => b $;
 
+--| Tautology
 term TT: wff;
+--| Tautology introduction
 axiom TT_intro: $ TT $;
 
+--| Disjunction
 term disj: wff > wff > wff;
 infixl disj: $\/$ prec 30;
+--| Disjunction left introduction
 axiom disj_intro_1 (a b: wff): $ a => a \/ b $;
+--| Disjunction right introduction
 axiom disj_intro_2 (a b: wff): $ b => a \/ b $;
+--| Disjunction elimination
 axiom disj_elim (a b c: wff): $ (a => c) => (b => c) => a \/ b => c $;
 
+--| Contradiction
 term FF: wff;
+--| Contradiction elimination
 axiom FF_elim (a: wff): $ FF => a $;
 
+--| Identity
 theorem id (a: wff): $ a => a $ = '(mp2 ax_S ax_K (! ax_K _ a));
 theorem into_TT (a: wff): $ a => TT $ = '(mp ax_K TT_intro);
 --| Also the B combinator
@@ -42,7 +62,7 @@ do {
         ['(,a) (contains v a)]
         [a {a == v}])
 
-    --| FOL lambda abstraction
+    --| Single-variable FOL lambda abstraction
     (def (lam v e) @
         if (not @ contains v e) '(mp ax_K ,e) @
         match e
@@ -62,29 +82,38 @@ do {
             -- \x.x => I or \x.const => K const
             [a @ if {a == v} 'id '(mp ax_K ,a)])
 
+    --| Multi-variable FOL lambda abstraction
     (def (lamn vs e) @ if (null? vs) e (lam (hd vs) (lamn (tl vs) e)))
 
-    --| Shallow add modus ponens to an s-expression
-    (def (mp_fold l) @
+    --| Add modus ponens to an s-expression
+    (def (mp_fold l) @ mp_fold_shallow @ mp_fold_deep_only l)
+
+    (def (mp_fold_deep_only l) @
+        if (null? l) '() @
+        if (atom? l) l @
+        cons (mp_fold (hd l)) @ mp_fold_deep_only (tl l))
+    (def (mp_fold_shallow l) @
         if (null? l) '() @
         if (atom? l) l @
         if (null? (tl l)) (hd l) @
-        letrec ([fst (hd l)] [snd (hd (tl l))] [tail (tl (tl l))])
-        (mp_fold (cons '(mp ,fst ,snd) ,tail)))
-    --| Recursivelly add modus ponens to an s-expression
-    (def (mp_rec_unfold l) @ if (null? l) '() @ if (atom? l) l @ cons (mp_rec (hd l)) @ mp_rec_unfold (tl l))
-    --| Add modus ponens to an s-expression
-    (def (mp_rec l) @ mp_fold @ mp_rec_unfold l)
+        mp_fold_shallow (cons '(mp ,(hd l) ,(hd @ tl l)) @ tl @ tl l))
 
-    --| l
-    (def (lamp vs e) (lamn vs (mp_rec e)))
+    --| FOL lambda abstraction with modus ponens folding
+    (def (lamp vs e) (lamn vs (mp_fold e)))
 };
 
+--| Curry
 theorem curry (a b c: wff): $ (a /\ b => c) => a => b => c $ = (lamp '(f a b) '(f (conj_intro a b)));
+--| Uncurry
 theorem uncurry (a b c: wff): $ (a => b => c) => a /\ b => c $ = (lamp '(f x) '(f (conj_elim_1 x) (conj_elim_2 x)));
 
+--| Logical negation
 def neg (a: wff): wff = $ a => FF $;
 prefix neg: $~$ prec 40;
+--| Negation elimination
 theorem neg_elim (a b: wff): $ ~a => a => b $ = '(mp compose FF_elim);
+--| Double negation introduction
 theorem double_neg_intro (a: wff): $ a => ~~a $ = (lamp '(a f) '(f a));
+
+--| Double negation of LEM
 theorem double_neg_lem (a: wff): $ ~~(a \/ ~a) $ = (lamp '(f) '(f @ disj_intro_2 @ compose f disj_intro_1));
