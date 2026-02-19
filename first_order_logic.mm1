@@ -69,7 +69,7 @@ theorem into_TT (a: wff): $ a => TT $ = '(mp ax_K TT_intro);
 --| Also the B combinator
 theorem compose (a b c: wff): $ (b => c) => (a => b) => (a => c) $ = '(mp2 ax_S (mp ax_K ax_S) ax_K);
 --| Also the C combinator
-theorem parametrize (a b c: wff): $ (a => b => c) => b => a => c $ = (mp_fold '(ax_S (ax_S (ax_K compose) ax_S) (ax_K ax_K)));
+theorem flip (a b c: wff): $ (a => b => c) => b => a => c $ = (mp_fold '(ax_S (ax_S (ax_K compose) ax_S) (ax_K ax_K)));
 
 do {
     (def (contains v e) @ match e
@@ -89,7 +89,7 @@ do {
                 -- \x.(c t) => B c (\x.t)
                 if (not @ contains v a) '(mp2 compose ,a ,(lam v b)) @
                 -- \x.(t c) => C (\x.t) c
-                if (not @ contains v b) '(mp2 parametrize ,(lam v a) ,b)
+                if (not @ contains v b) '(mp2 flip ,(lam v a) ,b)
                 -- \x.(t1 t2) => S (\x.t1) (\x.t2)
                 '(mp2 ax_S ,(lam v a) ,(lam v b))]
             -- unfold mp2 into mp mp
