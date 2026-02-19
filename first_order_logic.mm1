@@ -28,10 +28,10 @@ axiom conj_elim_1 (a b: wff): $ a /\ b => a $;
 --| Conjunction second elimination
 axiom conj_elim_2 (a b: wff): $ a /\ b => b $;
 
---| Tautology
-term TT: wff;
---| Tautology introduction
-axiom TT_intro: $ TT $;
+--| True, tautology
+term true: wff;
+--| True introduction
+axiom true_intro: $ true $;
 
 --| Disjunction
 term disj: wff > wff > wff;
@@ -43,10 +43,10 @@ axiom disj_intro_2 (a b: wff): $ b => a \/ b $;
 --| Disjunction elimination
 axiom disj_elim (a b c: wff): $ (a => c) => (b => c) => a \/ b => c $;
 
---| Contradiction
-term FF: wff;
---| Contradiction elimination
-axiom FF_elim (a: wff): $ FF => a $;
+--| False, contradiction
+term false: wff;
+--| False elimination
+axiom false_elim (a: wff): $ false => a $;
 
 do {
     --| Add modus ponens to an s-expression
@@ -65,7 +65,7 @@ do {
 
 --| Identity
 theorem id (a: wff): $ a => a $ = '(mp2 ax_S ax_K (! ax_K _ a));
-theorem into_TT (a: wff): $ a => TT $ = '(mp ax_K TT_intro);
+theorem anything_implies_true (a: wff): $ a => true $ = '(mp ax_K true_intro);
 --| Also the B combinator
 theorem compose (a b c: wff): $ (b => c) => (a => b) => (a => c) $ = '(mp2 ax_S (mp ax_K ax_S) ax_K);
 --| Also the C combinator
@@ -118,10 +118,10 @@ theorem curry (a b c: wff): $ (a /\ b => c) => a => b => c $ = (lamp '(f a b) '(
 theorem uncurry (a b c: wff): $ (a => b => c) => a /\ b => c $ = (lamp '(f x) '(f (conj_elim_1 x) (conj_elim_2 x)));
 
 --| Logical negation
-def neg (a: wff): wff = $ a => FF $;
+def neg (a: wff): wff = $ a => false $;
 prefix neg: $~$ prec 40;
 --| Negation elimination
-theorem neg_elim (a b: wff): $ ~a => a => b $ = '(mp compose FF_elim);
+theorem neg_elim (a b: wff): $ ~a => a => b $ = '(mp compose false_elim);
 --| Double negation introduction
 theorem double_neg_intro (a: wff): $ a => ~~a $ = (lamp '(a f) '(f a));
 
