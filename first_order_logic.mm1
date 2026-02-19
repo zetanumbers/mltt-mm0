@@ -84,10 +84,11 @@ do {
         if (not @ contains v e) '(mp ax_K ,e) @
         match e
             ['(mp ,a ,b) @
-                -- \x.(t x) => t
-                if (and (atom? b) {v == b}) a @
-                -- \x.(c t) => B c (\x.t)
-                if (not @ contains v a) '(mp2 compose ,a ,(lam v b)) @
+                if (not @ contains v a) (
+                    -- \x.(c x) => c
+                    if {(atom? b) and {v == b}} a
+                    -- \x.(c t) => B c (\x.t)
+                    '(mp2 compose ,a ,(lam v b))) @
                 -- \x.(t c) => C (\x.t) c
                 if (not @ contains v b) '(mp2 flip ,(lam v a) ,b)
                 -- \x.(t1 t2) => S (\x.t1) (\x.t2)
@@ -107,6 +108,9 @@ do {
     --| FOL lambda abstraction with modus ponens folding
     (def (lamp vs e) (lamn vs (mp_fold e)))
 };
+
+-- Tests
+theorem _ (a: wff): $ a => a $ = (lamp '(x) '(ax_K x x));
 
 --| Curry
 theorem curry (a b c: wff): $ (a /\ b => c) => a => b => c $ = (lamp '(f a b) '(f (conj_intro a b)));
