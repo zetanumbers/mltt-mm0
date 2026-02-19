@@ -1,6 +1,6 @@
 delimiter $ ( ~ $  $ ) , $;
 
---| Well-formed formulae, or Hilbert-style proposition
+--| Well-formed formula, or Hilbert-style proposition
 provable sort wff;
 
 --| Logical implication
