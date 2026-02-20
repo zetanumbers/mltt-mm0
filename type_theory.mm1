@@ -1,0 +1,153 @@
+delimiter $ [ ] $ $ [ ] : $;
+
+import "first_order_logic.mm1";
+
+term typing: wff > wff > wff;
+infixl typing: $:$ prec 50;
+
+term eq: wff > wff > wff;
+infixl eq: $=$ prec 60;
+
+axiom eq_refl (a A: wff):
+    $ a: A => a = a: A $;
+
+axiom eq_sym (a b A: wff):
+    $ a = b: A => b = a: A $;
+
+axiom eq_trans (a b c A: wff):
+    $ a = b: A => b = c: A => a = c: A $;
+
+sort lvl;
+term lz: lvl;
+term ls: lvl > lvl;
+
+term U: lvl > wff;
+axiom U_intro (l: lvl): $ U l: U (ls l) $;
+axiom U_cumul (A: wff) (l: lvl): $ A: U l => A: U (ls l) $;
+
+--| Extract type from typing judgment, with universe level as an unknown variable.
+--|
+--| Relies upon that any type introduction implies type is formed.
+axiom type_of {l: lvl} (a A: wff):
+    $ a: A => A : U l $;
+
+--| If dependent type B is const for `x: A` then extract constant formula B as a type.
+--|
+--| Relies upon explosion principle not being valid for typing judgments.
+axiom const_elim {x: wff} (A B: wff) (l: lvl):
+    $ (x: A => B: U l) => B: U l $;
+
+axiom eq_typed (a A B: wff) (l: lvl):
+    $ a: A => A = B: U l => a: B $;
+
+term subst {x: wff} (a: wff) (b: wff x): wff;
+notation subst {x: wff} (a: wff) (b: wff x): wff = b ($[$:80) a ($/$:80) x ($]$:80);
+
+axiom subst_specialize {x: wff} (a: wff) (b: wff x):
+    $ b => b[a / x] $;
+
+axiom subst_const {x: wff} (a b: wff):
+    $ b[a / x] => b $;
+
+axiom subst_const_eq {x: wff} (a b A: wff):
+    $ b[a / x]: A \/ b: A => b[a / x] = b: A $;
+
+axiom subst_var {x: wff} (a: wff):
+    $ x[a / x] <=> a $;
+
+axiom subst_var_eq {x: wff} (a A: wff):
+    $ x[a / x]: A \/ a: A => x[a / x] = a: A $;
+
+axiom subst_im {x: wff} (a: wff) (b c: wff x):
+    $ (b => c)[a / x] <=> (b[a / x] => c[a / x]) $;
+    
+axiom subst_conj {x: wff} (a: wff) (b c: wff x):
+    $ (b /\ c)[a / x] <=> b[a / x] /\ c[a / x] $;
+
+axiom subst_disj {x: wff} (a: wff) (b c: wff x):
+    $ (b \/ c)[a / x] <=> b[a / x] \/ c[a / x] $;
+
+axiom subst_typing {x: wff} (a: wff) (b B: wff x):
+    $ (b: B)[a / x] <=> b[a / x]: B[a / x] $;
+
+axiom subst_eq {x: wff} (a: wff) (b c: wff x):
+    $ (b = c)[a / x] <=> b[a / x] = c[a / x] $;
+
+axiom subst_with_eq {x: wff} (a b: wff) (D c C: wff x):
+    $ a = b: A => (x: A => D => c: C) => D[a / x] => c[a / x] = c[b / x]: C[a / x] $;
+
+term ap: wff > wff > wff;
+infixl ap: $@$ prec 70;
+
+--| Dependent function type
+term dep_fun {x: wff} (A: wff) (B: wff x): wff;
+notation dep_fun {x: wff} (A: wff) (B: wff x): wff =
+    ($P.$:60) x ($:$:50) A ($.$:60) B;
+
+--| Lambda abstraction
+term dep_lam {x: wff} (A: wff) (B: wff x): wff;
+notation dep_lam {x: wff} (A: wff) (b: wff x): wff =
+    ($\$:60) x ($:$:50) A ($.$:60) b;
+
+--| Dependent function type formation
+axiom dep_fun_form {x: wff} (A: wff) (B: wff x) (l: lvl):
+    $ (A: U l /\ (x: A => B: U l)) <=> (P. x: A . B): U l $;
+
+--| Dependent function type introduction
+axiom dep_fun_intro {x: wff} (A: wff) (b B: wff x):
+    $ A: U l => (x: A => b: B) => \ x: A . b : P. x: A . B $;
+
+--| Dependent function type elimination
+axiom dep_fun_elim {f x: wff} (a A: wff) (B: wff x):
+    $ f: P. x: A . B => a: A => f @ a: B[a / x] $;
+
+--| Dependent function type computation
+axiom dep_fun_comp {x: wff} (a A: wff) (b B: wff x):
+    $ (x: A => b: B) => a: A => (\ x: A . b) @ a = b[a / x]: B[a / x] $;
+
+--| Dependent function type uniqueness
+axiom dep_fun_uniq {f x: wff} (A: wff) (B: wff x):
+    $ f: P. x: A . B => f = (\ x: A . f @ x) : P. x: A . B $;
+
+--| Function type
+def fun (A B: wff) {.x: wff}: wff = '(dep_fun x A B);
+infixr fun: $->$ prec 60;
+
+--| Function type formation
+pub theorem fun_form (A B: wff) (l: lvl) {.x: wff}:
+    $ (A: U l /\ B: U l) <=> A -> B: U l $ =
+    '(mp2 conj_intro
+        (mp uncurry ,(lamp '(a b) '(conj_elim_1 (! dep_fun_form x) @ conj_intro a (ax_K b))))
+        ,(lamp '(f) '(conj_intro
+            (conj_elim_1 @ conj_elim_2 (! dep_fun_form x) f) @
+            (! const_elim x) @ conj_elim_2 @ conj_elim_2 dep_fun_form f)));
+
+--| Function type introduction
+pub theorem fun_intro {x: wff} (A B: wff) (b: wff x):
+    $ A: U l => (x: A => b: B) => \ x: A . b : A -> B $ =
+    'dep_fun_intro;
+
+--| Function type elimination
+pub theorem fun_elim {f: wff} (a A B: wff) {.x: wff} {.l: lvl}:
+    $ f: A -> B => a: A => f @ a: B $ =
+    (lamp '(ft a) '(eq_typed
+        (dep_fun_elim ft a) @
+        (! subst_const_eq x) @
+            disj_intro_2 @ conj_elim_2 @ conj_elim_2
+                fun_form @ (! type_of l) ft));
+
+--| Function type computation
+pub theorem fun_comp {x: wff} (a A B: wff) (b: wff x) {.l: lvl}:
+    $ (x: A => b: B) => a: A => (\ x: A . b) @ a = b[a / x]: B $ =
+    (lamp '(hb ha) '(eq_typed
+        (dep_fun_comp hb ha) @
+        subst_const_eq @
+            disj_intro_2 @ conj_elim_2 @ conj_elim_2
+                fun_form @
+                (! type_of l) @ fun_intro ((! type_of l) ha) hb));
+
+--| Function type uniqueness
+pub theorem fun_uniq {f x: wff} (A B: wff):
+    $ f: A -> B => f = (\ x: A . f @ x) : A -> B $ =
+    'dep_fun_uniq;
+
