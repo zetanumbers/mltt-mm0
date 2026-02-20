@@ -7,9 +7,9 @@ provable sort wff;
 term im: wff > wff > wff;
 infixr im: $=>$ prec 25;
 
---| Axiom K
+--| First Lukasiewicz' axiom, also the K combinator
 axiom ax_K (a b: wff): $ a => b => a $;
---| Axiom S
+--| Second Lukasiewicz' axiom, also the S combinator
 axiom ax_S (a b c: wff): $ (a => b => c) => (a => b) => (a => c) $;
 --| Modus ponens
 axiom mp (a b: wff): $ a => b $ > $ a $ > $ b $;
@@ -45,7 +45,7 @@ axiom disj_elim (a b c: wff): $ (a => c) => (b => c) => a \/ b => c $;
 
 --| False, contradiction
 term false: wff;
---| False elimination
+--| False elimination, ex falso as an axiom
 axiom false_elim (a: wff): $ false => a $;
 
 do {
@@ -63,7 +63,7 @@ do {
         mp_fold_shallow (cons '(mp ,(hd l) ,(hd @ tl l)) @ tl @ tl l))
 };
 
---| Identity
+--| Identity, also the I combinator
 theorem id (a: wff): $ a => a $ = '(mp2 ax_S ax_K (! ax_K _ a));
 theorem anything_implies_true (a: wff): $ a => true $ = '(mp ax_K true_intro);
 --| Also the B combinator
