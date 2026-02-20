@@ -60,6 +60,7 @@ do {
         if (null? l) '() @
         if (atom? l) l @
         if (null? (tl l)) (hd l) @
+        if {(hd l) == '!} l @
         mp_fold_shallow (cons '(mp ,(hd l) ,(hd @ tl l)) @ tl @ tl l))
 };
 
