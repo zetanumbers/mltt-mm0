@@ -118,6 +118,26 @@ theorem curry (a b c: wff): $ (a /\ b => c) => a => b => c $ = (lamp '(f a b) '(
 --| Uncurry
 theorem uncurry (a b c: wff): $ (a => b => c) => a /\ b => c $ = (lamp '(f x) '(f (conj_elim_1 x) (conj_elim_2 x)));
 
+theorem conj_sym (a b: wff): $ a /\ b => b /\ a $ = '(mp uncurry (mp flip conj_intro));
+
+theorem conj_assoc_1 (a b c: wff): $ (a /\ b) /\ c => a /\ (b /\ c) $ =
+    (lamp '(x) '(conj_intro (conj_elim_1 @ conj_elim_1 x) @ conj_intro (conj_elim_2 @ conj_elim_1 x) (conj_elim_2 x)));
+
+theorem conj_assoc_2 (a b c: wff): $ a /\ (b /\ c) => (a /\ b) /\ c $ =
+    (lamp '(x) '(conj_intro (conj_intro (conj_elim_1 x) (conj_elim_1 @ conj_elim_2 x)) (conj_elim_2 @ conj_elim_2 x)));
+
+theorem disj_sym (a b: wff): $ a \/ b => b \/ a $ = '(mp2 disj_elim disj_intro_2 disj_intro_1);
+
+theorem disj_assoc_1 (a b c: wff): $ (a \/ b) \/ c => a \/ (b \/ c) $ =
+    '(mp2 disj_elim
+        (mp2 disj_elim disj_intro_1 (mp2 compose disj_intro_2 disj_intro_1))
+        (mp2 compose disj_intro_2 disj_intro_2));
+
+theorem disj_assoc_2 (a b c: wff): $ a \/ (b \/ c) => (a \/ b) \/ c $ =
+    '(mp2 disj_elim
+        (mp2 compose disj_intro_1 disj_intro_1)
+        (mp2 disj_elim (mp2 compose disj_intro_1 disj_intro_2) disj_intro_2));
+
 --| Logical negation
 def neg (a: wff): wff = $ a => false $;
 prefix neg: $~$ prec 35;
@@ -131,3 +151,9 @@ theorem double_neg_lem (a: wff): $ ~~(a \/ ~a) $ = (lamp '(f) '(f @ disj_intro_2
 
 def iff (a b: wff): wff = $ (a => b) /\ (b => a) $;
 infixr iff: $ <=> $ prec 15;
+
+theorem conj_assoc (a b c: wff): $ (a /\ b) /\ c <=> a /\ (b /\ c) $ =
+    '(mp2 conj_intro conj_assoc_1 conj_assoc_2);
+
+theorem disj_assoc (a b c: wff): $ (a \/ b) \/ c <=> a \/ (b \/ c) $ =
+    '(mp2 conj_intro disj_assoc_1 disj_assoc_2);
