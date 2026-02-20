@@ -5,7 +5,7 @@ provable sort wff;
 
 --| Logical implication
 term im: wff > wff > wff;
-infixr im: $=>$ prec 25;
+infixr im: $=>$ prec 10;
 
 --| First Lukasiewicz' axiom, also the K combinator
 axiom ax_K (a b: wff): $ a => b => a $;
@@ -20,7 +20,7 @@ theorem mp3 (a b c d: wff) (f: $ a => b => c => d $) (ha: $a$) (hb: $b$) (hc: $c
 
 --| Conjunction
 term conj: wff > wff > wff;
-infixl conj: $/\$ prec 35;
+infixl conj: $/\$ prec 30;
 --| Conjunction introduction
 axiom conj_intro (a b: wff): $ a => b => a /\ b $;
 --| Conjunction first elimination
@@ -35,7 +35,7 @@ axiom true_intro: $ true $;
 
 --| Disjunction
 term disj: wff > wff > wff;
-infixl disj: $\/$ prec 30;
+infixl disj: $\/$ prec 20;
 --| Disjunction left introduction
 axiom disj_intro_1 (a b: wff): $ a => a \/ b $;
 --| Disjunction right introduction
@@ -120,7 +120,7 @@ theorem uncurry (a b c: wff): $ (a => b => c) => a /\ b => c $ = (lamp '(f x) '(
 
 --| Logical negation
 def neg (a: wff): wff = $ a => false $;
-prefix neg: $~$ prec 40;
+prefix neg: $~$ prec 35;
 --| Negation elimination
 theorem neg_elim (a b: wff): $ ~a => a => b $ = '(mp compose false_elim);
 --| Double negation introduction
