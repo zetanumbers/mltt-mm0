@@ -128,3 +128,6 @@ theorem double_neg_intro (a: wff): $ a => ~~a $ = (lamp '(a f) '(f a));
 
 --| Double negation of LEM
 theorem double_neg_lem (a: wff): $ ~~(a \/ ~a) $ = (lamp '(f) '(f @ disj_intro_2 @ compose f disj_intro_1));
+
+def iff (a b: wff): wff = $ (a => b) /\ (b => a) $;
+infixr iff: $ <=> $ prec 15;
