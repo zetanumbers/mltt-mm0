@@ -150,6 +150,9 @@ theorem double_neg_lem (a: wff): $ ~~(a \/ ~a) $ = (lamp '(f) '(f @ disj_intro_2
 def iff (a b: wff): wff = $ (a => b) /\ (b => a) $;
 infixr iff: $ <=> $ prec 15;
 
+theorem iff_elim_1 (a b: wff): $ (a <=> b) => a => b $ = 'conj_elim_1;
+theorem iff_elim_2 (a b: wff): $ (a <=> b) => b => a $ = 'conj_elim_2;
+
 theorem conj_assoc (a b c: wff): $ (a /\ b) /\ c <=> a /\ (b /\ c) $ =
     '(mp2 conj_intro conj_assoc_1 conj_assoc_2);
 

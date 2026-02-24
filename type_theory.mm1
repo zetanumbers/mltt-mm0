@@ -17,6 +17,12 @@ axiom eq_sym (a b A: wff):
 axiom eq_trans (a b c A: wff):
     $ a = b: A => b = c: A => a = c: A $;
 
+axiom eq_pr (a b A: wff):
+    $ a = b: A => a: A /\ b: A $;
+
+def eq_intro (a b A: wff): wff =
+    $ a: A \/ b: A => a = b: A $;
+
 sort lvl;
 term lz: lvl;
 term ls: lvl > lvl;
@@ -29,7 +35,7 @@ axiom U_cumul (A: wff) (l: lvl): $ A: U l => A: U (ls l) $;
 --|
 --| Relies upon that any type introduction implies type is formed.
 axiom type_of {l: lvl} (a A: wff):
-    $ a: A => A : U l $;
+    $ a: A => A: U l $;
 
 --| If dependent type B is const for `x: A` then extract constant formula B as a type.
 --|
@@ -50,13 +56,27 @@ axiom subst_const {x: wff} (a b: wff):
     $ b[a / x] => b $;
 
 axiom subst_const_eq {x: wff} (a b A: wff):
-    $ b[a / x]: A \/ b: A => b[a / x] = b: A $;
+    $ eq_intro (b[a / x]) b A $;
 
 axiom subst_var {x: wff} (a: wff):
     $ x[a / x] <=> a $;
 
 axiom subst_var_eq {x: wff} (a A: wff):
-    $ x[a / x]: A \/ a: A => x[a / x] = a: A $;
+    $ eq_intro (x[a / x]) a A $;
+
+axiom subst_sym {x y: wff} (a b: wff) (c: wff x):
+    $ c[a / x][b / y] => c[b / y][a / x] $;
+
+axiom subst_cong_1 {x: wff} (a c T: wff) (b: wff x):
+    $ b[(a = c) / x]: T <=> b[a / x] = b[c / x]: T $;
+axiom subst_cong_2 {x: wff} (a T: wff) (b c: wff x):
+    $ (b = c)[a / x]: T <=> b[a / x] = c[a / x]: T $;
+
+theorem subst_cong_diag {x: wff} (a c T: wff) (b d: wff x):
+    $ (b = d)[(a = c) / x]: T => b[a / x] = d[c / x]: T $ =
+    (lamp '(s) '(eq_trans
+        (conj_elim_1 subst_cong_1 @ conj_elim_1 @ eq_pr @ conj_elim_1 subst_cong_2 s)
+        (conj_elim_1 subst_cong_2 @ conj_elim_2 @ eq_pr @ conj_elim_1 subst_cong_1 s)));
 
 axiom subst_im {x: wff} (a: wff) (b c: wff x):
     $ (b => c)[a / x] <=> (b[a / x] => c[a / x]) $;
@@ -70,12 +90,10 @@ axiom subst_disj {x: wff} (a: wff) (b c: wff x):
 axiom subst_typing {x: wff} (a: wff) (b B: wff x):
     $ (b: B)[a / x] <=> b[a / x]: B[a / x] $;
 
-axiom subst_eq {x: wff} (a: wff) (b c: wff x):
-    $ (b = c)[a / x] <=> b[a / x] = c[a / x] $;
-
 axiom subst_with_eq {x: wff} (a b: wff) (D c C: wff x):
     $ a = b: A => (x: A => D => c: C) => D[a / x] => c[a / x] = c[b / x]: C[a / x] $;
 
+--| Application operation
 term ap: wff > wff > wff;
 infixl ap: $@$ prec 70;
 
@@ -84,10 +102,33 @@ term dep_fun {x: wff} (A: wff) (B: wff x): wff;
 notation dep_fun {x: wff} (A: wff) (B: wff x): wff =
     ($P.$:60) x ($:$:50) A ($.$:60) B;
 
+axiom dep_fun_subst {x y: wff} (c: wff) (A: wff y) (B: wff x y) (l: lvl):
+    $ eq_intro ((dep_fun x A B)[c / y]) (dep_fun x (A[c / y]) (B[c / y])) (U l) $;
+
+axiom dep_fun_cong_1 {x: wff} (A B: wff) (C: wff x) (l: lvl):
+    $ (P. x: (A = B) . C): U l <=> (P. x: A . C) = (P. x : B . C): U l $;
+axiom dep_fun_cong_2 {x: wff} (A: wff) (B C: wff x) (l: lvl):
+    $ (P. x: A . (B = C)): U l <=> (P. x: A . B) = (P. x : A . C): U l $;
+
+theorem dep_fun_cong_diag {x: wff} (A B: wff) (C D: wff x) (l: lvl):
+    $ (P. x: (A = B) . (C = D)): U l => (P. x: A . C) = (P. x : B . D): U l $ =
+    (lamp '(s) '(eq_trans
+        (conj_elim_1 dep_fun_cong_2 @ conj_elim_1 @ eq_pr @ conj_elim_1 dep_fun_cong_1 s)
+        (conj_elim_1 dep_fun_cong_1 @ conj_elim_2 @ eq_pr @ conj_elim_1 dep_fun_cong_2 s)));
+
+
 --| Lambda abstraction
-term dep_lam {x: wff} (A: wff) (B: wff x): wff;
+term dep_lam {x: wff} (A: wff) (b: wff x): wff;
 notation dep_lam {x: wff} (A: wff) (b: wff x): wff =
     ($\$:60) x ($:$:50) A ($.$:60) b;
+
+axiom dep_lam_subst {x y: wff} (c: wff) (A: wff y) (b B: wff x y):
+    $ eq_intro ((dep_lam x A b)[c / y]) (dep_lam x (A[c / y]) (b[c / y])) (dep_fun x A B) $;
+
+axiom dep_lam_cong_1 {x: wff} (A B: wff) (c T: wff x):
+    $ (\ x: (A = B) . c): T <=> (\ x: A . c) = (\ x : B . c): T $;
+axiom dep_lam_cong_2 {x: wff} (A: wff) (b c: wff x):
+    $ (\ x: A . (b = c)): T <=> (\ x: A . b) = (\ x : A . c): T $;
 
 --| Dependent function type formation
 axiom dep_fun_form {x: wff} (A: wff) (B: wff x) (l: lvl):
@@ -109,9 +150,24 @@ axiom dep_fun_comp {x: wff} (a A: wff) (b B: wff x):
 axiom dep_fun_uniq {f x: wff} (A: wff) (B: wff x):
     $ f: P. x: A . B => f = (\ x: A . f @ x) : P. x: A . B $;
 
+axiom ap_subst {x: wff} (a: wff) (b c: wff x):
+    $ eq_intro ((b @ c)[a / x]) (b[a / x] @ c[a / x]) A $;
+
+axiom ap_cong (a b c T: wff):
+    $ (a = c) @ b: T <=> a @ c = b @ d: T $;
+
 --| Function type
 def fun (A B: wff) {.x: wff}: wff = '(dep_fun x A B);
 infixr fun: $->$ prec 60;
+
+theorem fun_subst {x: wff} (c: wff) (A B: wff x) (l: lvl) {.y: wff}:
+    $ eq_intro ((A -> B)[c / x]) (A[c / x] -> B[c / x]) (U l) $ =
+    '(! dep_fun_subst y);
+
+theorem fun_cong_1 (A B C: wff) (l: lvl) {.x: wff}:
+    $ (A = B) -> C: U l <=> (A -> C) = (B -> C): U l $ = '(! dep_fun_cong_1 x);
+theorem fun_cong_2 (A B C: wff) (l: lvl) {.x: wff}:
+    $ A -> (B = C): U l <=> (A -> B) = (A -> C): U l $ = '(! dep_fun_cong_2 x);
 
 --| Function type formation
 pub theorem fun_form (A B: wff) (l: lvl) {.x: wff}:
@@ -151,3 +207,41 @@ pub theorem fun_uniq {f x: wff} (A B: wff):
     $ f: A -> B => f = (\ x: A . f @ x) : A -> B $ =
     'dep_fun_uniq;
 
+--| Sigma type
+term Sigma {x: wff} (A: wff) (B: wff x): wff;
+
+axiom subst_Sigma {x y: wff} (c: wff) (A: wff y) (B: wff x y) (l: lvl):
+    $ eq_intro ((Sigma x A B)[c / y]) (Sigma x (A[c / y]) (B[c / y])) (U l) $;
+
+--| Dependent pair
+term pair (a b: wff): wff;
+
+axiom subst_pair {x: wff} (a A: wff) (b c B: wff x):
+    $ eq_intro ((pair b c)[a / x]) (pair (b[a / x]) (c[a / x])) (Sigma x A B) $;
+
+--| Sigma formation
+axiom sigma_form {x: wff} (A: wff) (B: wff x) (l: lvl):
+    $ (A: U l /\ (x: A => B: U l)) <=> Sigma x A B: U l $;
+
+--| Sigma introduction
+axiom sigma_intro {x: wff} (a A b: wff) (B: wff x) (l: lvl):
+    $ (x: A => B: U l) => a: A => b: B[a / x] => (pair a b) : Sigma x A B $;
+
+term ind_Sigma {x y z: wff} (A: wff) (B: wff x) (g: wff x y) (C: wff z) (p: wff): wff;
+
+axiom ind_Sigma_subst {x y z w: wff} (A: wff) (B: wff x) (g: wff x y) (C: wff z) (p d: wff):
+    $ (ind_Sigma x y z A B g C p)[d / w] = (ind_Sigma x y z (A[d / w]) (B[d / w]) (g[d / w]) (C[d / w]) (p[d / w])): C[p / z] $;
+
+--| Sigma elimination
+axiom sigma_elim {x y z: wff} (A p: wff) (B: wff x) (g: wff x y) (C: wff z) (l: lvl):
+    $ (z: Sigma x A B => C: U l) =>
+      (x: A => y: B => g: C[(pair x y) / z]) =>
+      p: Sigma x A B =>
+      (ind_Sigma x y z A B g C p) : C[p / z] $;
+
+--| Sigma computation
+axiom sigma_comp {x y z: wff} (a A b: wff) (B: wff x) (g: wff x y) (C: wff z) (l: lvl):
+    $ (z: Sigma x A B => C: U l) =>
+      (x: A => y: B => g: C[(pair x y) / z]) =>
+      p: Sigma x A B =>
+      (ind_Sigma x y z A B g C (pair a b)) = g[a / x][b / y] : C[(pair a b) / z] $;
