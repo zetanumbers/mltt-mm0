@@ -20,6 +20,7 @@ coercion typed_consequent: typed_expr > consequent;
 
 term sequent: ctx > consequent > jdmt;
 infixr sequent: $|-$ prec 10;
+
 term ctx_consequent: consequent;
 def is_ctx (G: ctx): jdmt = $ G |- ctx_consequent $;
 prefix is_ctx: $ctx$ prec 10;
@@ -30,10 +31,21 @@ axiom ctx_emp: $ is_ctx zctx $;
 term pctx: ctx > ctx > ctx;
 infixl pctx: $,$ prec 15;
 
-axiom ctx_lassoc (G D E: ctx) (c: consequent): $ G, (D, E) |- c $ > $ G, D, E |- c $;
-axiom ctx_rassoc (G D E: ctx) (c: consequent): $ G, D, E |- c $ > $ G, (D, E) |- c $;
-axiom ctx_lunit (G: ctx) (c: consequent): $ zctx, G |- c $ > $ G |- c $;
-axiom ctx_runit (G: ctx) (c: consequent): $ G, zctx |- c $ > $ G |- c $;
+axiom ctx_lassoc (G D E: ctx) (c: consequent):
+  $ G, (D, E) |- c $ >
+  $ G, D, E |- c $;
+
+axiom ctx_rassoc (G D E: ctx) (c: consequent):
+  $ G, D, E |- c $ >
+  $ G, (D, E) |- c $;
+
+axiom ctx_lunit (G: ctx) (c: consequent):
+  $ zctx, G |- c $ >
+  $ G |- c $;
+
+axiom ctx_runit (G: ctx) (c: consequent):
+  $ G, zctx |- c $ >
+  $ G |- c $;
 
 term ty_ctx: typed_expr > ctx;
 coercion ty_ctx: typed_expr > ctx;
@@ -47,17 +59,21 @@ term U: lvl > term;
 -- axiom U_cumul (A: wff) (l: lvl): $ A: U l => A: U (ls l) $;
 
 axiom ctx_ext (G: ctx) {x: term} (A: term) (l: lvl):
-  $ G |- A: U l $ > $ ctx G, x: A $;
+  $ G |- A: U l $ >
+  $ ctx G, x: A $;
 
 axiom vble {x: term} (A: term) (G D: ctx x):
-  $ ctx G, x: A, D $ > $ G, x: A, D |- x: A $;
+  $ ctx G, x: A, D $ >
+  $ G, x: A, D |- x: A $;
 
 term subst {x: term} (a: term) (b: term x): term;
 term subst_ctx {x: term} (a: term) (G: ctx x): ctx;
 
 term rewrites: term > term > jdmt;
+
 axiom rewrites_refl (a: term):
   $ rewrites a a $;
+
 axiom rewrites_trans (a b c: term):
   $ rewrites a b $ >
   $ rewrites b c $ >
@@ -65,26 +81,32 @@ axiom rewrites_trans (a b c: term):
 
 axiom subst_const {x: term} (a b: term):
   $ rewrites (subst x a b) b $; 
+
 axiom subst_var {x: term} (a: term):
   $ rewrites (subst x a x) a $; 
 
 term rewrites_ctx: ctx > ctx > jdmt;
+
 axiom rewrites_ctx_refl (A: ctx):
   $ rewrites_ctx A A $;
+
 axiom rewrites_ctx_trans (A B C: ctx):
   $ rewrites_ctx A B $ >
   $ rewrites_ctx B C $ >
   $ rewrites_ctx A C $;
+
 axiom rewrites_pctx (A B C D: ctx):
   $ rewrites_ctx A B $ >
   $ rewrites_ctx C D $ >
   $ rewrites_ctx (A, C) (B, D) $;
+
 axiom rewrites_ctx_ty {x: term} (A B: term):
   $ rewrites A B $ >
   $ rewrites_ctx (x: A) (x: B) $;
 
 axiom subst_ctx_const {x: term} (a: term) (G: ctx):
   $ rewrites_ctx (subst_ctx x a G) G $; 
+
 axiom subst_ctx_pctx {x: term} (a: term) (G D: ctx x):
   $ rewrites_ctx (subst_ctx x a (G, D)) ((subst_ctx x a G), (subst_ctx x a D)) $; 
 
@@ -92,15 +114,18 @@ axiom rewrite_ctx (G D: ctx) (c: consequent):
   $ rewrites_ctx G D $ >
   $ G |- c $ >
   $ D |- c $;
+
 axiom rewrite_term (G: ctx) (a b A: term):
   $ rewrites a b $ >
   $ G |- a: A $ >
   $ G |- b: A $;
+
 axiom rewrite_eq (G: ctx) (a b c d A: term):
   $ rewrites a c $ >
   $ rewrites b d $ >
   $ G |- a = b: A $ >
   $ G |- c = d: A $;
+
 axiom rewrite_type (A B: term) (G: ctx) (a: term_or_eq):
   $ rewrites A B $ >
   $ G |- a: A $ >
@@ -116,15 +141,42 @@ theorem subst_ctx_ty_var {x y: term} (A: term) (G D: ctx x y) (c: consequent x y
     h);
 
 axiom subst_1 (G: ctx) {x: term} (a A: term) (D: ctx x) (b: term x) (B: term x):
-  $ G |- a: A $ > $ G, x: A, D |- b: B $ > $ G, (subst_ctx x a D) |- (subst x a b): (subst x a B) $;
+  $ G |- a: A $ >
+  $ G, x: A, D |- b: B $ >
+  $ G, (subst_ctx x a D) |- (subst x a b): (subst x a B) $;
+
 axiom subst_2 (G: ctx) {x: term} (a A: term) (D: ctx x) (b c: term x) (B: term x):
-  $ G |- a: A $ > $ G, x: A, D |- b = c: B $ > $ G, (subst_ctx x a D) |- (subst x a b): (subst x a B) $;
+  $ G |- a: A $ >
+  $ G, x: A, D |- b = c: B $ >
+  $ G, (subst_ctx x a D) |- (subst x a b): (subst x a B) $;
+
+axiom subst_3 (G: ctx) {x: term} (a b A: term) (D: ctx x) (c: term x) (C: term x):
+  $ G |- a = b: A $ >
+  $ G, x: A, D |- b = c: C $ >
+  $ G, (subst_ctx x a D) |- (subst x a c) = (subst x b c): (subst x a C) $;
 
 axiom weakening (G D: ctx) {x: term} (A: term) (l: lvl) (b: term_or_eq) (B: term):
   $ G |- A: U l $ >
   $ G, D |- b: B $ >
   $ G, x: A, D |- b: B $;
 
+axiom eq_refl (G: ctx) (a A: term):
+  $ G |- a: A $ >
+  $ G |- a = a: A $;
+
+axiom eq_sym (G: ctx) (a b A: term):
+  $ G |- a = b: A $ >
+  $ G |- b = a: A $;
+
+axiom eq_trans (G: ctx) (a b c A: term):
+  $ G |- a = b: A $ >
+  $ G |- b = c: A $ >
+  $ G |- a = c: A $;
+
+axiom eq_ty (G: ctx) (a: term_or_eq) (A B: term) (l: lvl):
+  $ G |- a: A $ >
+  $ G |- A = B: U l $ >
+  $ G |- a: B $;
 
 -- term typing: wff > wff > wff;
 -- infixl typing: $:$ prec 50;
