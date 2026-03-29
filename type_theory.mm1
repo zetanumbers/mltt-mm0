@@ -47,6 +47,14 @@ axiom ctx_runit (G: ctx) (c: consequent):
   $ G, zctx |- c $ >
   $ G |- c $;
 
+axiom ctx_lunit_inv (G: ctx) (c: consequent):
+  $ G |- c $ >
+  $ zctx, G |- c $;
+
+axiom ctx_runit_inv (G: ctx) (c: consequent):
+  $ G |- c $ >
+  $ G, zctx |- c $;
+
 term ty_ctx: typed_expr > ctx;
 coercion ty_ctx: typed_expr > ctx;
 
@@ -55,16 +63,19 @@ term lz: lvl;
 term ls: lvl > lvl;
 
 term U: lvl > term;
--- axiom U_intro (l: lvl): $ U l: U (ls l) $;
--- axiom U_cumul (A: wff) (l: lvl): $ A: U l => A: U (ls l) $;
 
 axiom ctx_ext (G: ctx) {x: term} (A: term) (l: lvl):
   $ G |- A: U l $ >
   $ ctx G, x: A $;
 
-axiom vble {x: term} (A: term) (G D: ctx x):
+axiom vble (G: ctx) {x: term} (A: term) (D: ctx x):
   $ ctx G, x: A, D $ >
   $ G, x: A, D |- x: A $;
+
+theorem vble_rightmost (G: ctx) {x: term} (A: term)
+  (h: $ ctx G, x: A $):
+  $ G, x: A |- x: A $ =
+  '(ctx_runit (vble (ctx_runit_inv h)));
 
 term subst {x: term} (a: term) (b: term x): term;
 term subst_ctx {x: term} (a: term) (G: ctx x): ctx;
@@ -85,6 +96,9 @@ axiom subst_const {x: term} (a b: term):
 axiom subst_var {x: term} (a: term):
   $ rewrites (subst x a x) a $; 
 
+-- axiom subst_nop {x: term} (a: term x):
+--   $ rewrites (subst x x a) a $;
+
 term rewrites_ctx: ctx > ctx > jdmt;
 
 axiom rewrites_ctx_refl (A: ctx):
@@ -100,12 +114,25 @@ axiom rewrites_pctx (A B C D: ctx):
   $ rewrites_ctx C D $ >
   $ rewrites_ctx (A, C) (B, D) $;
 
+theorem rewrites_pctx_l (A B C: ctx)
+  (h: $ rewrites_ctx A B $):
+  $ rewrites_ctx (A, C) (B, C) $ =
+  '(rewrites_pctx h rewrites_ctx_refl);
+
+theorem rewrites_pctx_r (A B C: ctx)
+  (h: $ rewrites_ctx B C $):
+  $ rewrites_ctx (A, B) (A, C) $ =
+  '(rewrites_pctx rewrites_ctx_refl h);
+
 axiom rewrites_ctx_ty {x: term} (A B: term):
   $ rewrites A B $ >
   $ rewrites_ctx (x: A) (x: B) $;
 
 axiom subst_ctx_const {x: term} (a: term) (G: ctx):
   $ rewrites_ctx (subst_ctx x a G) G $; 
+
+-- axiom subst_ctx_nop {x: term} (G: ctx):
+--   $ rewrites_ctx (subst_ctx x x G) G $;
 
 axiom subst_ctx_pctx {x: term} (a: term) (G D: ctx x):
   $ rewrites_ctx (subst_ctx x a (G, D)) ((subst_ctx x a G), (subst_ctx x a D)) $; 
@@ -131,26 +158,32 @@ axiom rewrite_type (A B: term) (G: ctx) (a: term_or_eq):
   $ G |- a: A $ >
   $ G |- a: B $;
 
-theorem subst_ctx_ty_var {x y: term} (A: term) (G D: ctx x y) (c: consequent x y)
+theorem subst_ctx_ty_var {x y: term} (A: term) (G: ctx x) (D: ctx x y) (c: consequent x y)
   (h: $ G, y: (subst x A x), D |- c $):
   $ G, y: A, D |- c $ =
   '(rewrite_ctx
     (rewrites_pctx
-      (rewrites_pctx rewrites_ctx_refl (rewrites_ctx_ty subst_var))
+      (rewrites_pctx_r (rewrites_ctx_ty subst_var))
       rewrites_ctx_refl)
     h);
 
-axiom subst_1 (G: ctx) {x: term} (a A: term) (D: ctx x) (b: term x) (B: term x):
+axiom subst_1 (G: ctx) {x: term} (a A: term) (D: ctx x) (b B: term x):
   $ G |- a: A $ >
   $ G, x: A, D |- b: B $ >
   $ G, (subst_ctx x a D) |- (subst x a b): (subst x a B) $;
 
-axiom subst_2 (G: ctx) {x: term} (a A: term) (D: ctx x) (b c: term x) (B: term x):
+theorem subst_1_rightmost (G: ctx) {x: term} (a A: term) (b B: term x)
+  (h1: $ G |- a: A $)
+  (h2: $ G, x: A |- b: B $):
+  $ G |- (subst x a b): (subst x a B) $ =
+  '(ctx_runit (rewrite_ctx (rewrites_pctx_r subst_ctx_const) (subst_1 h1 (ctx_runit_inv h2))));
+
+axiom subst_2 (G: ctx) {x: term} (a A: term) (D: ctx x) (b c B: term x):
   $ G |- a: A $ >
   $ G, x: A, D |- b = c: B $ >
   $ G, (subst_ctx x a D) |- (subst x a b): (subst x a B) $;
 
-axiom subst_3 (G: ctx) {x: term} (a b A: term) (D: ctx x) (c: term x) (C: term x):
+axiom subst_3 (G: ctx) {x: term} (a b A: term) (D: ctx x) (c C: term x):
   $ G |- a = b: A $ >
   $ G, x: A, D |- b = c: C $ >
   $ G, (subst_ctx x a D) |- (subst x a c) = (subst x b c): (subst x a C) $;
@@ -178,27 +211,20 @@ axiom eq_ty (G: ctx) (a: term_or_eq) (A B: term) (l: lvl):
   $ G |- A = B: U l $ >
   $ G |- a: B $;
 
--- term typing: wff > wff > wff;
--- infixl typing: $:$ prec 50;
+-- axiom eq_pr_1 (G: ctx) (a b A: term):
+--   $ G |- a = b: A $ >
+--   $ G |- a: A $;
 
--- term eq: wff > wff > wff;
--- infixl eq: $=$ prec 60;
+-- theorem eq_pr_2 (G: ctx) (a b A: term)
+--   (h: $ G |- a = b: A $):
+--   $ G |- b: A $ =
+--   '(eq_pr_1 (eq_sym h));
 
--- axiom eq_refl (a A: wff):
---     $ a: A => a = a: A $;
+axiom U_intro (G: ctx) (l: lvl):
+  $ ctx G $ > $ G |- U l: U (ls l) $;
 
--- axiom eq_sym (a b A: wff):
---     $ a = b: A => b = a: A $;
-
--- axiom eq_trans (a b c A: wff):
---     $ a = b: A => b = c: A => a = c: A $;
-
--- axiom eq_pr (a b A: wff):
---     $ a = b: A => a: A /\ b: A $;
-
--- def eq_intro (a b A: wff): wff =
---     $ a: A \/ b: A => a = b: A $;
-
+axiom U_cumul (G: ctx) (A: term_or_eq) (l: lvl):
+  $ G |- A: U l $ > $ G |- A: U (ls l) $;
 
 -- --| Extract type from typing judgment, with universe level as an unknown variable.
 -- --|
@@ -206,211 +232,93 @@ axiom eq_ty (G: ctx) (a: term_or_eq) (A B: term) (l: lvl):
 -- axiom type_of {l: lvl} (a A: wff):
 --     $ a: A => A: U l $;
 
--- --| If dependent type B is const for `x: A` then extract constant formula B as a type.
--- --|
--- --| Relies upon explosion principle not being valid for typing judgments.
--- axiom const_elim {x: wff} (A B: wff) (l: lvl):
---     $ (x: A => B: U l) => B: U l $;
+term Pi {x: term} (A: term) (B: term x): term;
 
--- axiom eq_typed (a A B: wff) (l: lvl):
---     $ a: A => A = B: U l => a: B $;
+axiom rewrites_Pi {x y: term} (a: term) (B C: term x):
+  $ rewrites (subst x a (Pi y B C)) (Pi y (subst x a B) (subst x a C)) $;
 
--- term subst {x: wff} (a: wff) (b: wff x): wff;
--- notation subst {x: wff} (a: wff) (b: wff x): wff = b ($[$:80) a ($/$:80) x ($]$:80);
+-- axiom rewrites_Pi_bound {x: term} (a: term) (B C: term x):
+--   $ rewrites (subst x a (Pi x B C)) (Pi x B C) $;
 
--- axiom subst_specialize {x: wff} (a: wff) (b: wff x):
---     $ b => b[a / x] $;
+axiom Pi_form (G: ctx) {x: term} (A: term) (B: term x) (l: lvl):
+  $ G |- A: U l $ >
+  $ G, x: A |- B: U l $ >
+  $ G |- Pi x A B: U l $;
 
--- axiom subst_const {x: wff} (a b: wff):
---     $ b[a / x] => b $;
+axiom Pi_form_cong_1 (G: ctx) {x: term} (A B: term) (C: term x) (l: lvl):
+  $ G |- A = B: U l $ >
+  $ G, x: A |- C: U l $ >
+  $ G |- Pi x A C = Pi x B C: U l $;
 
--- axiom subst_const_eq {x: wff} (a b A: wff):
---     $ eq_intro (b[a / x]) b A $;
+axiom Pi_form_cong_2 (G: ctx) {x: term} (A: term) (B C: term x) (l: lvl):
+  $ G |- A: U l $ >
+  $ G, x: A |- B = C: U l $ >
+  $ G |- Pi x A B = Pi x A C: U l $;
 
--- axiom subst_var {x: wff} (a: wff):
---     $ x[a / x] <=> a $;
+term lam {x: term} (A: term) (b: term x): term;
 
--- axiom subst_var_eq {x: wff} (a A: wff):
---     $ eq_intro (x[a / x]) a A $;
+axiom rewrites_lam {x y: term} (a: term) (B c: term x):
+  $ rewrites (subst x a (lam y B c)) (lam y (subst x a B) (subst x a c)) $;
 
--- axiom subst_sym {x y: wff} (a b: wff) (c: wff x):
---     $ c[a / x][b / y] => c[b / y][a / x] $;
+-- axiom rewrites_lam_bound {x: term} (a: term) (B c: term x):
+--   $ rewrites (subst x a (lam x B c)) (lam x B c) $;
 
--- axiom subst_cong_1 {x: wff} (a c T: wff) (b: wff x):
---     $ b[(a = c) / x]: T <=> b[a / x] = b[c / x]: T $;
--- axiom subst_cong_2 {x: wff} (a T: wff) (b c: wff x):
---     $ (b = c)[a / x]: T <=> b[a / x] = c[a / x]: T $;
+axiom Pi_intro (G: ctx) {x: term} (A: term) (b B: term x):
+  $ G, x: A |- b: B $ >
+  $ G |- lam x A b: Pi x A B $;
 
--- theorem subst_cong_diag {x: wff} (a c T: wff) (b d: wff x):
---     $ (b = d)[(a = c) / x]: T => b[a / x] = d[c / x]: T $ =
---     (lamp '(s) '(eq_trans
---         (conj_elim_1 subst_cong_1 @ conj_elim_1 @ eq_pr @ conj_elim_1 subst_cong_2 s)
---         (conj_elim_1 subst_cong_2 @ conj_elim_2 @ eq_pr @ conj_elim_1 subst_cong_1 s)));
+axiom Pi_intro_cong_1 (G: ctx) {x: term} (A B: term) (c C: term x) (l: lvl):
+  $ G |- A = B: U l $ >
+  $ G, x: A |- c: C $ >
+  $ G |- lam x A c = lam x B c: Pi x A C $;
 
--- axiom subst_im {x: wff} (a: wff) (b c: wff x):
---     $ (b => c)[a / x] <=> (b[a / x] => c[a / x]) $;
-    
--- axiom subst_conj {x: wff} (a: wff) (b c: wff x):
---     $ (b /\ c)[a / x] <=> b[a / x] /\ c[a / x] $;
+axiom Pi_intro_cong_2 (G: ctx) {x: term} (A: term) (b c B: term x):
+  $ G, x: A |- b = c: B $ >
+  $ G |- lam x A b = lam x A c: Pi x A B $;
 
--- axiom subst_disj {x: wff} (a: wff) (b c: wff x):
---     $ (b \/ c)[a / x] <=> b[a / x] \/ c[a / x] $;
+term ap (a b: term): term;
 
--- axiom subst_typing {x: wff} (a: wff) (b B: wff x):
---     $ (b: B)[a / x] <=> b[a / x]: B[a / x] $;
+axiom rewrites_ap {x: term} (a: term) (b c: term x):
+  $ rewrites (subst x a (ap b c)) (ap (subst x a b) (subst x a c)) $;
 
--- axiom subst_with_eq {x: wff} (a b: wff) (D c C: wff x):
---     $ a = b: A => (x: A => D => c: C) => D[a / x] => c[a / x] = c[b / x]: C[a / x] $;
+axiom Pi_elim (G: ctx) {x: term} (a A: term) (f B: term x):
+  $ G |- f: Pi x A B $ >
+  $ G |- a: A $ >
+  $ G |- ap f a: subst x a B $;
 
--- --| Application operation
--- term ap: wff > wff > wff;
--- infixl ap: $@$ prec 70;
+axiom Pi_elim_cong_1 (G: ctx) {x: term} (a A: term) (f g B: term x):
+  $ G |- f = g: Pi x A B $ >
+  $ G |- a: A $ >
+  $ G |- ap f a = ap g a: subst x a B $;
 
--- --| Dependent function type
--- term dep_fun {x: wff} (A: wff) (B: wff x): wff;
--- notation dep_fun {x: wff} (A: wff) (B: wff x): wff =
---     ($P.$:60) x ($:$:50) A ($.$:60) B;
+axiom Pi_elim_cong_2 (G: ctx) {x: term} (a b A: term) (f C: term x):
+  $ G |- f: Pi x A C $ >
+  $ G |- a = b: A $ >
+  $ G |- ap f a = ap f b: subst x a C $;
 
--- axiom dep_fun_subst {x y: wff} (c: wff) (A: wff y) (B: wff x y) (l: lvl):
---     $ eq_intro ((dep_fun x A B)[c / y]) (dep_fun x (A[c / y]) (B[c / y])) (U l) $;
+axiom Pi_comp (G: ctx) {x: term} (a A: term) (b B: term x):
+  $ G, x: A |- b: B $ >
+  $ G |- a: A $ >
+  $ G |- ap (lam x A b) a = subst x a b: subst x a B $;
 
--- axiom dep_fun_cong_1 {x: wff} (A B: wff) (C: wff x) (l: lvl):
---     $ (P. x: (A = B) . C): U l <=> (P. x: A . C) = (P. x : B . C): U l $;
--- axiom dep_fun_cong_2 {x: wff} (A: wff) (B C: wff x) (l: lvl):
---     $ (P. x: A . (B = C)): U l <=> (P. x: A . B) = (P. x : A . C): U l $;
+theorem Pi_comp_pr_1 (G: ctx) {x: term} (a A: term) (b B: term x)
+  (h1: $ G, x: A |- b: B $)
+  (h2: $ G |- a: A $):
+  $ G |- ap (lam x A b) a: subst x a B $ =
+  '(Pi_elim (Pi_intro h1) h2);
 
--- theorem dep_fun_cong_diag {x: wff} (A B: wff) (C D: wff x) (l: lvl):
---     $ (P. x: (A = B) . (C = D)): U l => (P. x: A . C) = (P. x : B . D): U l $ =
---     (lamp '(s) '(eq_trans
---         (conj_elim_1 dep_fun_cong_2 @ conj_elim_1 @ eq_pr @ conj_elim_1 dep_fun_cong_1 s)
---         (conj_elim_1 dep_fun_cong_1 @ conj_elim_2 @ eq_pr @ conj_elim_1 dep_fun_cong_2 s)));
+theorem Pi_comp_pr_2 (G: ctx) {x: term} (a A: term) (b B: term x)
+  (h1: $ G, x: A |- b: B $)
+  (h2: $ G |- a: A $):
+  $ G |- subst x a b: subst x a B $ =
+  '(subst_1_rightmost h2 h1);
 
+axiom Pi_uniq (G: ctx) {x: term} (A: term) (f B: term x):
+  $ G |- f: Pi x A B $ >
+  $ G |- f = lam x A (ap f x): Pi x A B $;
 
--- --| Lambda abstraction
--- term dep_lam {x: wff} (A: wff) (b: wff x): wff;
--- notation dep_lam {x: wff} (A: wff) (b: wff x): wff =
---     ($\$:60) x ($:$:50) A ($.$:60) b;
-
--- axiom dep_lam_subst {x y: wff} (c: wff) (A: wff y) (b B: wff x y):
---     $ eq_intro ((dep_lam x A b)[c / y]) (dep_lam x (A[c / y]) (b[c / y])) (dep_fun x A B) $;
-
--- axiom dep_lam_cong_1 {x: wff} (A B: wff) (c T: wff x):
---     $ (\ x: (A = B) . c): T <=> (\ x: A . c) = (\ x : B . c): T $;
--- axiom dep_lam_cong_2 {x: wff} (A: wff) (b c: wff x):
---     $ (\ x: A . (b = c)): T <=> (\ x: A . b) = (\ x : A . c): T $;
-
--- --| Dependent function type formation
--- axiom dep_fun_form {x: wff} (A: wff) (B: wff x) (l: lvl):
---     $ (A: U l /\ (x: A => B: U l)) <=> (P. x: A . B): U l $;
-
--- --| Dependent function type introduction
--- axiom dep_fun_intro {x: wff} (A: wff) (b B: wff x):
---     $ A: U l => (x: A => b: B) => \ x: A . b : P. x: A . B $;
-
--- --| Dependent function type elimination
--- axiom dep_fun_elim {f x: wff} (a A: wff) (B: wff x):
---     $ f: P. x: A . B => a: A => f @ a: B[a / x] $;
-
--- --| Dependent function type computation
--- axiom dep_fun_comp {x: wff} (a A: wff) (b B: wff x):
---     $ (x: A => b: B) => a: A => (\ x: A . b) @ a = b[a / x]: B[a / x] $;
-
--- --| Dependent function type uniqueness
--- axiom dep_fun_uniq {f x: wff} (A: wff) (B: wff x):
---     $ f: P. x: A . B => f = (\ x: A . f @ x) : P. x: A . B $;
-
--- axiom ap_subst {x: wff} (a: wff) (b c: wff x):
---     $ eq_intro ((b @ c)[a / x]) (b[a / x] @ c[a / x]) A $;
-
--- axiom ap_cong (a b c T: wff):
---     $ (a = c) @ b: T <=> a @ c = b @ d: T $;
-
--- --| Function type
--- def fun (A B: wff) {.x: wff}: wff = '(dep_fun x A B);
--- infixr fun: $->$ prec 60;
-
--- theorem fun_subst {x: wff} (c: wff) (A B: wff x) (l: lvl) {.y: wff}:
---     $ eq_intro ((A -> B)[c / x]) (A[c / x] -> B[c / x]) (U l) $ =
---     '(! dep_fun_subst y);
-
--- theorem fun_cong_1 (A B C: wff) (l: lvl) {.x: wff}:
---     $ (A = B) -> C: U l <=> (A -> C) = (B -> C): U l $ = '(! dep_fun_cong_1 x);
--- theorem fun_cong_2 (A B C: wff) (l: lvl) {.x: wff}:
---     $ A -> (B = C): U l <=> (A -> B) = (A -> C): U l $ = '(! dep_fun_cong_2 x);
-
--- --| Function type formation
--- pub theorem fun_form (A B: wff) (l: lvl) {.x: wff}:
---     $ (A: U l /\ B: U l) <=> A -> B: U l $ =
---     '(mp2 conj_intro
---         (mp uncurry ,(lamp '(a b) '(conj_elim_1 (! dep_fun_form x) @ conj_intro a (ax_K b))))
---         ,(lamp '(f) '(conj_intro
---             (conj_elim_1 @ conj_elim_2 (! dep_fun_form x) f) @
---             (! const_elim x) @ conj_elim_2 @ conj_elim_2 dep_fun_form f)));
-
--- --| Function type introduction
--- pub theorem fun_intro {x: wff} (A B: wff) (b: wff x):
---     $ A: U l => (x: A => b: B) => \ x: A . b : A -> B $ =
---     'dep_fun_intro;
-
--- --| Function type elimination
--- pub theorem fun_elim {f: wff} (a A B: wff) {.x: wff} {.l: lvl}:
---     $ f: A -> B => a: A => f @ a: B $ =
---     (lamp '(ft a) '(eq_typed
---         (dep_fun_elim ft a) @
---         (! subst_const_eq x) @
---             disj_intro_2 @ conj_elim_2 @ conj_elim_2
---                 fun_form @ (! type_of l) ft));
-
--- --| Function type computation
--- pub theorem fun_comp {x: wff} (a A B: wff) (b: wff x) {.l: lvl}:
---     $ (x: A => b: B) => a: A => (\ x: A . b) @ a = b[a / x]: B $ =
---     (lamp '(hb ha) '(eq_typed
---         (dep_fun_comp hb ha) @
---         subst_const_eq @
---             disj_intro_2 @ conj_elim_2 @ conj_elim_2
---                 fun_form @
---                 (! type_of l) @ fun_intro ((! type_of l) ha) hb));
-
--- --| Function type uniqueness
--- pub theorem fun_uniq {f x: wff} (A B: wff):
---     $ f: A -> B => f = (\ x: A . f @ x) : A -> B $ =
---     'dep_fun_uniq;
-
--- --| Sigma type
--- term Sigma {x: wff} (A: wff) (B: wff x): wff;
-
--- axiom subst_Sigma {x y: wff} (c: wff) (A: wff y) (B: wff x y) (l: lvl):
---     $ eq_intro ((Sigma x A B)[c / y]) (Sigma x (A[c / y]) (B[c / y])) (U l) $;
-
--- --| Dependent pair
--- term pair (a b: wff): wff;
-
--- axiom subst_pair {x: wff} (a A: wff) (b c B: wff x):
---     $ eq_intro ((pair b c)[a / x]) (pair (b[a / x]) (c[a / x])) (Sigma x A B) $;
-
--- --| Sigma formation
--- axiom sigma_form {x: wff} (A: wff) (B: wff x) (l: lvl):
---     $ (A: U l /\ (x: A => B: U l)) <=> Sigma x A B: U l $;
-
--- --| Sigma introduction
--- axiom sigma_intro {x: wff} (a A b: wff) (B: wff x) (l: lvl):
---     $ (x: A => B: U l) => a: A => b: B[a / x] => (pair a b) : Sigma x A B $;
-
--- term ind_Sigma {x y z: wff} (A: wff) (B: wff x) (g: wff x y) (C: wff z) (p: wff): wff;
-
--- axiom ind_Sigma_subst {x y z w: wff} (A: wff) (B: wff x) (g: wff x y) (C: wff z) (p d: wff):
---     $ (ind_Sigma x y z A B g C p)[d / w] = (ind_Sigma x y z (A[d / w]) (B[d / w]) (g[d / w]) (C[d / w]) (p[d / w])): C[p / z] $;
-
--- --| Sigma elimination
--- axiom sigma_elim {x y z: wff} (A p: wff) (B: wff x) (g: wff x y) (C: wff z) (l: lvl):
---     $ (z: Sigma x A B => C: U l) =>
---       (x: A => y: B => g: C[(pair x y) / z]) =>
---       p: Sigma x A B =>
---       (ind_Sigma x y z A B g C p) : C[p / z] $;
-
--- --| Sigma computation
--- axiom sigma_comp {x y z: wff} (a A b: wff) (B: wff x) (g: wff x y) (C: wff z) (l: lvl):
---     $ (z: Sigma x A B => C: U l) =>
---       (x: A => y: B => g: C[(pair x y) / z]) =>
---       p: Sigma x A B =>
---       (ind_Sigma x y z A B g C (pair a b)) = g[a / x][b / y] : C[(pair a b) / z] $;
+-- theorem Pi_uniq_pr_2 (G: ctx) {x: term} (A: term) (f B: term x) (l: lvl)
+--   (h1: $ G |- A: U l $)
+--   (h2: $ G |- f: Pi x A B $):
+--   $ G |- lam x A (ap f x): Pi x A B $ =
+--   '(Pi_intro (rewrite_type subst_nop (Pi_elim (ctx_runit (weakening h1 (ctx_runit_inv h2))) (vble_rightmost (ctx_ext h1)))));
