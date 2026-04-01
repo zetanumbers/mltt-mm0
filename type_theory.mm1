@@ -114,12 +114,12 @@ axiom rwtc_comma (A B C D: ctx):
   $ rwtc C D $ >
   $ rwtc (A, C) (B, D) $;
 
-theorem rwt_pctx_l (A B C: ctx)
+theorem rwt_comma_l (A B C: ctx)
   (h: $ rwtc A B $):
   $ rwtc (A, C) (B, C) $ =
   '(rwtc_comma h rwtc_refl);
 
-theorem rwt_pctx_r (A B C: ctx)
+theorem rwt_comma_r (A B C: ctx)
   (h: $ rwtc B C $):
   $ rwtc (A, B) (A, C) $ =
   '(rwtc_comma rwtc_refl h);
@@ -163,7 +163,7 @@ theorem sbstx_ty_var {x y: term} (A: term) (G: ctx x) (D: ctx x y) (c: consequen
   $ G, y: A, D |- c $ =
   '(rewrite_ctx
     (rwtc_comma
-      (rwt_pctx_r (rwtc_ty sbst_var))
+      (rwt_comma_r (rwtc_ty sbst_var))
       rwtc_refl)
     h);
 
@@ -176,7 +176,7 @@ theorem sbst_1_rightmost (G: ctx) {x: term} (a A: term) (b B: term x)
   (h1: $ G |- a: A $)
   (h2: $ G, x: A |- b: B $):
   $ G |- (sbst x a b): (sbst x a B) $ =
-  '(ctx_runit (rewrite_ctx (rwt_pctx_r sbstx_const) (sbst_1 h1 (ctx_runit_inv h2))));
+  '(ctx_runit (rewrite_ctx (rwt_comma_r sbstx_const) (sbst_1 h1 (ctx_runit_inv h2))));
 
 axiom sbst_2 (G: ctx) {x: term} (a A: term) (D: ctx x) (b c B: term x):
   $ G |- a: A $ >
