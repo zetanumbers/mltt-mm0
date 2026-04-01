@@ -31,30 +31,6 @@ axiom ctx_emp: $ is_ctx zctx $;
 term comma: ctx > ctx > ctx;
 infixl comma: $,$ prec 15;
 
-axiom ctx_lassoc (G D E: ctx) (c: consequent):
-  $ G, (D, E) |- c $ >
-  $ G, D, E |- c $;
-
-axiom ctx_rassoc (G D E: ctx) (c: consequent):
-  $ G, D, E |- c $ >
-  $ G, (D, E) |- c $;
-
-axiom ctx_lunit (G: ctx) (c: consequent):
-  $ zctx, G |- c $ >
-  $ G |- c $;
-
-axiom ctx_runit (G: ctx) (c: consequent):
-  $ G, zctx |- c $ >
-  $ G |- c $;
-
-axiom ctx_lunit_inv (G: ctx) (c: consequent):
-  $ G |- c $ >
-  $ zctx, G |- c $;
-
-axiom ctx_runit_inv (G: ctx) (c: consequent):
-  $ G |- c $ >
-  $ G, zctx |- c $;
-
 term ty_ctx: typed_expr > ctx;
 coercion ty_ctx: typed_expr > ctx;
 
@@ -64,19 +40,6 @@ term ls: lvl > lvl;
 
 term U: lvl > term;
 
-axiom ctx_ext (G: ctx) {x: term} (A: term) (l: lvl):
-  $ G |- A: U l $ >
-  $ ctx G, x: A $;
-
-axiom vble (G: ctx) {x: term} (A: term) (D: ctx x):
-  $ ctx G, x: A, D $ >
-  $ G, x: A, D |- x: A $;
-
-theorem vble_rightmost (G: ctx) {x: term} (A: term)
-  (h: $ ctx G, x: A $):
-  $ G, x: A |- x: A $ =
-  '(ctx_runit (vble (ctx_runit_inv h)));
-
 term sbst {x: term} (a: term) (b: term x): term;
 term sbstx {x: term} (a: term) (G: ctx x): ctx;
 
@@ -84,6 +47,10 @@ term rwt: term > term > jdmt;
 
 axiom rwt_refl (a: term):
   $ rwt a a $;
+
+axiom rwt_sym (a b: term):
+  $ rwt a b $ >
+  $ rwt b a $;
 
 axiom rwt_trans (a b c: term):
   $ rwt a b $ >
@@ -96,13 +63,17 @@ axiom sbst_const {x: term} (a b: term):
 axiom sbst_var {x: term} (a: term):
   $ rwt (sbst x a x) a $;
 
--- axiom sbst_nop {x: term} (a: term x):
---   $ rwt (sbst x x a) a $;
+axiom sbst_reduce {x y: term} (a: term) (b: term x):
+  $ rwt (sbst y a (sbst x y b)) (sbst x a b) $;
 
 term rwtc: ctx > ctx > jdmt;
 
 axiom rwtc_refl (A: ctx):
   $ rwtc A A $;
+
+axiom rwtc_sym (A B: ctx):
+  $ rwtc A B $ >
+  $ rwtc B A $;
 
 axiom rwtc_trans (A B C: ctx):
   $ rwtc A B $ >
@@ -114,15 +85,36 @@ axiom rwtc_comma (A B C D: ctx):
   $ rwtc C D $ >
   $ rwtc (A, C) (B, D) $;
 
-theorem rwt_comma_l (A B C: ctx)
+theorem rwtc_comma_l (A B C: ctx)
   (h: $ rwtc A B $):
   $ rwtc (A, C) (B, C) $ =
   '(rwtc_comma h rwtc_refl);
 
-theorem rwt_comma_r (A B C: ctx)
+theorem rwtc_comma_r (A B C: ctx)
   (h: $ rwtc B C $):
   $ rwtc (A, B) (A, C) $ =
   '(rwtc_comma rwtc_refl h);
+
+axiom ctx_assoc (G D E: ctx):
+  $ rwtc (G, (D, E)) (G, D, E) $;
+
+theorem ctx_assoc_inv (G D E: ctx):
+  $ rwtc (G, D, E) (G, (D, E)) $ =
+  '(rwtc_sym ctx_assoc);
+
+axiom ctx_lunit (G: ctx):
+  $ rwtc (zctx, G) G $;
+
+theorem ctx_lunit_inv (G: ctx):
+  $ rwtc G (zctx, G) $ =
+  '(rwtc_sym ctx_lunit);
+
+axiom ctx_runit (G: ctx):
+  $ rwtc (G, zctx) G $;
+
+theorem ctx_runit_inv (G: ctx):
+  $ rwtc G (G, zctx) $ =
+  '(rwtc_sym ctx_runit);
 
 axiom rwtc_ty {x: term} (A B: term):
   $ rwt A B $ >
@@ -131,8 +123,8 @@ axiom rwtc_ty {x: term} (A B: term):
 axiom sbstx_const {x: term} (a: term) (G: ctx):
   $ rwtc (sbstx x a G) G $;
 
--- axiom sbstx_nop {x: term} (G: ctx):
---   $ rwtc (sbstx x x G) G $;
+axiom sbstx_reduce {x y: term} (a: term) (b: ctx x):
+  $ rwtc (sbstx y a (sbstx x y b)) (sbstx x a b) $;
 
 axiom sbstx_comma {x: term} (a: term) (G D: ctx x):
   $ rwtc (sbstx x a (G, D)) ((sbstx x a G), (sbstx x a D)) $;
@@ -158,12 +150,25 @@ axiom rewrite_type (A B: term) (G: ctx) (a: term_or_eq):
   $ G |- a: A $ >
   $ G |- a: B $;
 
+axiom ctx_ext (G: ctx) {x: term} (A: term) (l: lvl):
+  $ G |- A: U l $ >
+  $ ctx G, x: A $;
+
+axiom vble (G: ctx) {x: term} (A: term) (D: ctx x):
+  $ ctx G, x: A, D $ >
+  $ G, x: A, D |- x: A $;
+
+theorem vble_rightmost (G: ctx) {x: term} (A: term)
+  (h: $ ctx G, x: A $):
+  $ G, x: A |- x: A $ =
+  '(rewrite_ctx ctx_runit (vble (rewrite_ctx ctx_runit_inv h)));
+
 theorem sbstx_ty_var {x y: term} (A: term) (G: ctx x) (D: ctx x y) (c: consequent x y)
   (h: $ G, y: (sbst x A x), D |- c $):
   $ G, y: A, D |- c $ =
   '(rewrite_ctx
     (rwtc_comma
-      (rwt_comma_r (rwtc_ty sbst_var))
+      (rwtc_comma_r (rwtc_ty sbst_var))
       rwtc_refl)
     h);
 
@@ -176,7 +181,7 @@ theorem sbst_1_rightmost (G: ctx) {x: term} (a A: term) (b B: term x)
   (h1: $ G |- a: A $)
   (h2: $ G, x: A |- b: B $):
   $ G |- (sbst x a b): (sbst x a B) $ =
-  '(ctx_runit (rewrite_ctx (rwt_comma_r sbstx_const) (sbst_1 h1 (ctx_runit_inv h2))));
+  '(rewrite_ctx ctx_runit (rewrite_ctx (rwtc_comma_r sbstx_const) (sbst_1 h1 (rewrite_ctx (rwtc_sym ctx_runit) h2))));
 
 axiom sbst_2 (G: ctx) {x: term} (a A: term) (D: ctx x) (b c B: term x):
   $ G |- a: A $ >
@@ -192,6 +197,12 @@ axiom weakening (G D: ctx) {x: term} (A: term) (l: lvl) (b: term_or_eq) (B: term
   $ G |- A: U l $ >
   $ G, D |- b: B $ >
   $ G, x: A, D |- b: B $;
+
+theorem weakening_rightmost (G: ctx) {x: term} (A: term) (l: lvl) (b: term_or_eq) (B: term)
+  (h1: $ G |- A: U l $)
+  (h2: $ G |- b: B $):
+  $ G, x: A |- b: B $ =
+  '(rewrite_ctx ctx_runit (weakening h1 (rewrite_ctx ctx_runit_inv h2)));
 
 axiom eq_refl (G: ctx) (a A: term):
   $ G |- a: A $ >
@@ -234,8 +245,16 @@ axiom U_cumul (G: ctx) (A: term_or_eq) (l: lvl):
 
 term Pi {x: term} (A: term) (B: term x): term;
 
-axiom rwt_Pi {x y: term} (a B: term) (C: term x):
+axiom rwt_Pi {x: term} (A C: term) (B D: term x):
+  $ rwt A C $ >
+  $ rwt B D $ >
+  $ rwt (Pi x A B) (Pi x C D) $;
+
+axiom sbst_Pi {x y: term} (a B: term) (C: term x):
   $ rwt (sbst x a (Pi y B C)) (Pi y (sbst x a B) (sbst x a C)) $;
+
+axiom Pi_alpha {x y: term} (A: term) (B: term x):
+  $ rwt (Pi x A B) (Pi y A (sbst x y B)) $;
 
 -- axiom rwt_Pi_bound {x: term} (a: term) (B C: term x):
 --   $ rwt (sbst x a (Pi x B C)) (Pi x B C) $;
@@ -257,8 +276,16 @@ axiom Pi_form_cong_2 (G: ctx) {x: term} (A: term) (B C: term x) (l: lvl):
 
 term lam {x: term} (A: term) (b: term x): term;
 
-axiom rwt_lam {x y: term} (a: term) (B c: term x):
+axiom rwt_lam {x: term} (A C: term) (b d: term x):
+  $ rwt A C $ >
+  $ rwt b d $ >
+  $ rwt (lam x A b) (lam x C d) $;
+
+axiom sbst_lam {x y: term} (a: term) (B c: term x):
   $ rwt (sbst x a (lam y B c)) (lam y (sbst x a B) (sbst x a c)) $;
+
+axiom lam_alpha {x y: term} (A: term) (b: term x):
+  $ rwt (lam x A b) (lam y A (sbst x y b)) $;
 
 -- axiom rwt_lam_bound {x: term} (a: term) (B c: term x):
 --   $ rwt (sbst x a (lam x B c)) (lam x B c) $;
@@ -278,7 +305,12 @@ axiom Pi_intro_cong_2 (G: ctx) {x: term} (A: term) (b c B: term x):
 
 term ap (a b: term): term;
 
-axiom rwt_ap {x: term} (a: term) (b c: term x):
+axiom rwt_ap (a b c d: term):
+  $ rwt a c $ >
+  $ rwt b d $ >
+  $ rwt (ap a b) (ap c d) $;
+
+axiom sbst_ap {x: term} (a: term) (b c: term x):
   $ rwt (sbst x a (ap b c)) (ap (sbst x a b) (sbst x a c)) $;
 
 axiom Pi_elim (G: ctx) {x: term} (a A: term) (f B: term x):
@@ -317,8 +349,36 @@ axiom Pi_uniq (G: ctx) {x: term} (A: term) (f B: term x):
   $ G |- f: Pi x A B $ >
   $ G |- f = lam x A (ap f x): Pi x A B $;
 
--- theorem Pi_uniq_pr_2 (G: ctx) {x: term} (A: term) (f B: term x) (l: lvl)
---   (h1: $ G |- A: U l $)
---   (h2: $ G |- f: Pi x A B $):
---   $ G |- lam x A (ap f x): Pi x A B $ =
---   '(Pi_intro (rewrite_type sbst_nop (Pi_elim (ctx_runit (weakening h1 (ctx_runit_inv h2))) (vble_rightmost (ctx_ext h1)))));
+theorem Pi_uniq_pr_2_lemma1 (G: ctx) {x0 x1: term} (A f: term) (B: term x0) (l: lvl)
+  (h1: $ G |- A: U l $)
+  (h2: $ G |- f: Pi x0 A B $):
+  $ G, x1: A |- ap f x1: sbst x0 x1 B $ =
+  '(Pi_elim (weakening_rightmost h1 h2) (vble_rightmost (ctx_ext h1)));
+
+theorem Pi_uniq_pr_2_lemma2 (G: ctx) {x0 x1: term} (A f: term) (B: term x1)
+  (h: $ G |- f: Pi x1 A B $):
+  $ G |- f: Pi x0 A (sbst x1 x0 B) $ =
+  '(rewrite_type Pi_alpha h);
+
+theorem Pi_uniq_pr_2_lemma3 (G: ctx) {x0 x1 x2: term} (A f: term) (B: term x2) (l: lvl)
+  (h1: $ G |- A: U l $)
+  (h2: $ G |- f: Pi x2 A B $):
+  $ G |- lam x1 A (ap f x1): Pi x1 A (sbst x0 x1 (sbst x2 x0 B)) $ =
+  '(Pi_intro (Pi_uniq_pr_2_lemma1 h1 (Pi_uniq_pr_2_lemma2 h2)));
+
+theorem Pi_uniq_pr_2_lemma4 (G: ctx) {x0 x1: term} (A f: term) (B: term x0) (l: lvl) {.x2: term}
+  (h1: $ G |- A: U l $)
+  (h2: $ G |- f: Pi x0 A B $):
+  $ G |- lam x1 A (ap f x1): Pi x1 A (sbst x0 x1 B) $ =
+  '(rewrite_type (rwt_Pi rwt_refl sbst_reduce) (! Pi_uniq_pr_2_lemma3 _ x2 _ x0 _ _ _ _ h1 h2));
+
+theorem Pi_uniq_pr_2_lemma5 (G: ctx) {x0 x1: term} (A f: term) (B: term x0)
+  (h: $ G |- lam x1 A (ap f x1): Pi x1 A (sbst x0 x1 B) $):
+  $ G |- lam x0 A (ap f x0): Pi x0 A B $ =
+  '(rewrite_term (rwt_trans lam_alpha (rwt_lam rwt_refl (rwt_trans sbst_ap (rwt_ap sbst_const sbst_var)))) @ rewrite_type (rwt_sym Pi_alpha) h);
+
+theorem Pi_uniq_pr_2 (G: ctx) {x: term} (A f: term) (B: term x) (l: lvl) {.y: term}
+  (h1: $ G |- A: U l $)
+  (h2: $ G |- f: Pi x A B $):
+  $ G |- lam x A (ap f x): Pi x A B $ =
+  '(Pi_uniq_pr_2_lemma5 (! Pi_uniq_pr_2_lemma4 _ x y _ _ _ _ h1 h2));
