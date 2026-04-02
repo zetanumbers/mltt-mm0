@@ -41,8 +41,6 @@ term ls: lvl > lvl;
 term U: lvl > term;
 
 term sbst {x: term} (a: term) (b: term x): term;
-term sbstx {x: term} (a: term) (G: ctx x): ctx;
-
 term rwt: term > term > jdmt;
 
 axiom rwt_refl (a: term):
@@ -63,9 +61,19 @@ axiom sbst_const {x: term} (a b: term):
 axiom sbst_var {x: term} (a: term):
   $ rwt (sbst x a x) a $;
 
-axiom sbst_reduce {x y: term} (a: term) (b: term x):
-  $ rwt (sbst y a (sbst x y b)) (sbst x a b) $;
+axiom rwt_sbst {x: term} (a b: term) (c d: term x):
+  $ rwt a b $ >
+  $ rwt c d $ >
+  $ rwt (sbst x a c) (sbst x b d) $;
 
+axiom sbst_sbst {x y: term} (a: term) (b: term y) (c: term x y):
+  $ rwt (sbst y a (sbst x b c)) (sbst x (sbst y a b) (sbst y a c)) $;
+
+theorem sbst_reduce {x y: term} (a: term) (b: term x):
+  $ rwt (sbst y a (sbst x y b)) (sbst x a b) $ =
+  '(rwt_trans sbst_sbst (rwt_sbst sbst_var sbst_const));
+
+term sbstx {x: term} (a: term) (G: ctx x): ctx;
 term rwtc: ctx > ctx > jdmt;
 
 axiom rwtc_refl (A: ctx):
@@ -123,8 +131,17 @@ axiom rwtc_ty {x: term} (A B: term):
 axiom sbstx_const {x: term} (a: term) (G: ctx):
   $ rwtc (sbstx x a G) G $;
 
-axiom sbstx_reduce {x y: term} (a: term) (b: ctx x):
-  $ rwtc (sbstx y a (sbstx x y b)) (sbstx x a b) $;
+axiom rwtc_sbstx {x: term} (a b: term) (c d: ctx x):
+  $ rwt a b $ >
+  $ rwtc c d $ >
+  $ rwtc (sbstx x a c) (sbstx x b d) $;
+
+axiom sbstx_sbstx {x y: term} (a: term) (b: term y) (c: ctx x y):
+  $ rwtc (sbstx y a (sbstx x b c)) (sbstx x (sbst y a b) (sbstx y a c)) $;
+
+theorem sbstx_reduce {x y: term} (a: term) (b: ctx x):
+  $ rwtc (sbstx y a (sbstx x y b)) (sbstx x a b) $ =
+  '(rwtc_trans sbstx_sbstx (rwtc_sbstx sbst_var sbstx_const));
 
 axiom sbstx_comma {x: term} (a: term) (G D: ctx x):
   $ rwtc (sbstx x a (G, D)) ((sbstx x a G), (sbstx x a D)) $;
@@ -193,12 +210,12 @@ axiom sbst_3 (G: ctx) {x: term} (a b A: term) (D: ctx x) (c C: term x):
   $ G, x: A, D |- b = c: C $ >
   $ G, (sbstx x a D) |- (sbst x a c) = (sbst x b c): (sbst x a C) $;
 
-axiom weakening (G D: ctx) {x: term} (A: term) (l: lvl) (b: term_or_eq) (B: term):
+axiom weakening (G D: ctx) {x: term} (A B: term) (l: lvl) (b: term_or_eq):
   $ G |- A: U l $ >
   $ G, D |- b: B $ >
   $ G, x: A, D |- b: B $;
 
-theorem weakening_rightmost (G: ctx) {x: term} (A: term) (l: lvl) (b: term_or_eq) (B: term)
+theorem weakening_rightmost (G: ctx) {x: term} (A B: term) (l: lvl) (b: term_or_eq)
   (h1: $ G |- A: U l $)
   (h2: $ G |- b: B $):
   $ G, x: A |- b: B $ =
