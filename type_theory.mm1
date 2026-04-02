@@ -287,9 +287,6 @@ axiom sbst_lam {x y: term} (a: term) (B c: term x):
 axiom lam_alpha {x y: term} (A: term) (b: term x):
   $ rwt (lam x A b) (lam y A (sbst x y b)) $;
 
--- axiom rwt_lam_bound {x: term} (a: term) (B c: term x):
---   $ rwt (sbst x a (lam x B c)) (lam x B c) $;
-
 axiom Pi_intro (G: ctx) {x: term} (A: term) (b B: term x):
   $ G, x: A |- b: B $ >
   $ G |- lam x A b: Pi x A B $;
@@ -313,17 +310,17 @@ axiom rwt_ap (a b c d: term):
 axiom sbst_ap {x: term} (a: term) (b c: term x):
   $ rwt (sbst x a (ap b c)) (ap (sbst x a b) (sbst x a c)) $;
 
-axiom Pi_elim (G: ctx) {x: term} (a A: term) (f B: term x):
+axiom Pi_elim (G: ctx) {x: term} (a A f: term) (B: term x):
   $ G |- f: Pi x A B $ >
   $ G |- a: A $ >
   $ G |- ap f a: sbst x a B $;
 
-axiom Pi_elim_cong_1 (G: ctx) {x: term} (a A: term) (f g B: term x):
+axiom Pi_elim_cong_1 (G: ctx) {x: term} (a A f g : term) (B: term x):
   $ G |- f = g: Pi x A B $ >
   $ G |- a: A $ >
   $ G |- ap f a = ap g a: sbst x a B $;
 
-axiom Pi_elim_cong_2 (G: ctx) {x: term} (a b A: term) (f C: term x):
+axiom Pi_elim_cong_2 (G: ctx) {x: term} (a b A f: term) (C: term x):
   $ G |- f: Pi x A C $ >
   $ G |- a = b: A $ >
   $ G |- ap f a = ap f b: sbst x a C $;
@@ -333,11 +330,11 @@ axiom Pi_comp (G: ctx) {x: term} (a A: term) (b B: term x):
   $ G |- a: A $ >
   $ G |- ap (lam x A b) a = sbst x a b: sbst x a B $;
 
-theorem Pi_comp_pr_1 (G: ctx) {x: term} (a A: term) (b B: term x)
+theorem Pi_comp_pr_1 (G: ctx) {x: term} (a A: term) (b B: term x) {.y: term}
   (h1: $ G, x: A |- b: B $)
   (h2: $ G |- a: A $):
   $ G |- ap (lam x A b) a: sbst x a B $ =
-  '(Pi_elim (Pi_intro h1) h2);
+  '(rewrite_type sbst_reduce (Pi_elim (rewrite_type (! Pi_alpha _ y) (Pi_intro h1)) h2));
 
 theorem Pi_comp_pr_2 (G: ctx) {x: term} (a A: term) (b B: term x)
   (h1: $ G, x: A |- b: B $)
@@ -345,7 +342,7 @@ theorem Pi_comp_pr_2 (G: ctx) {x: term} (a A: term) (b B: term x)
   $ G |- sbst x a b: sbst x a B $ =
   '(sbst_1_rightmost h2 h1);
 
-axiom Pi_uniq (G: ctx) {x: term} (A: term) (f B: term x):
+axiom Pi_uniq (G: ctx) {x: term} (A f: term) (B: term x):
   $ G |- f: Pi x A B $ >
   $ G |- f = lam x A (ap f x): Pi x A B $;
 
@@ -404,3 +401,48 @@ theorem fun_form_cong_2 (G: ctx) (A B C: term) (l: lvl) {.x: term}
   (hbc: $ G |- B = C: U l $):
   $ G |- A -> B = A -> C: U l $ =
   '(Pi_form_cong_2 ha (! weakening_rightmost _ x _ _ _ _ ha hbc));
+
+theorem fun_intro (G: ctx) {x: term} (A B: term) (b: term x)
+  (h: $ G, x: A |- b: B $):
+  $ G |- lam x A b: A -> B $ =
+  '(Pi_intro h);
+
+theorem fun_intro_cong_1 (G: ctx) {x: term} (A B C: term) (c: term x) (l: lvl)
+  (h1: $ G |- A = B: U l $)
+  (h2: $ G, x: A |- c: C $):
+  $ G |- lam x A c = lam x B c: A -> C $ =
+  '(Pi_intro_cong_1 h1 h2);
+
+theorem fun_intro_cong_2 (G: ctx) {x: term} (A B: term) (b c: term x)
+  (h: $ G, x: A |- b = c: B $):
+  $ G |- lam x A b = lam x A c: A -> B $ =
+  '(Pi_intro_cong_2 h);
+
+theorem fun_elim (G: ctx) (a A f B: term) {.x: term}
+  (h1: $ G |- f: A -> B $)
+  (h2: $ G |- a: A $):
+  $ G |- ap f a: B $ =
+  '(rewrite_type sbst_const (! Pi_elim _ x _ _ _ _ h1 h2));
+
+theorem fun_elim_cong_1 (G: ctx) (a A f g B: term) {.x: term}
+  (h1: $ G |- f = g: A -> B $)
+  (h2: $ G |- a: A $):
+  $ G |- ap f a = ap g a: B $ =
+  '(rewrite_type sbst_const (! Pi_elim_cong_1 _ x _ _ _ _ _ h1 h2));
+
+theorem fun_elim_cong_2 (G: ctx) (a b A f C: term) {.x: term}
+  (h1: $ G |- f: A -> C $)
+  (h2: $ G |- a = b: A $):
+  $ G |- ap f a = ap f b: C $ =
+  '(rewrite_type sbst_const (! Pi_elim_cong_2 _ x _ _ _ _ _ h1 h2));
+
+theorem fun_comp (G: ctx) {x: term} (a A B: term) (b: term x)
+  (h1: $ G, x: A |- b: B $)
+  (h2: $ G |- a: A $):
+  $ G |- ap (lam x A b) a = sbst x a b: B $ =
+  '(rewrite_type sbst_const (Pi_comp h1 h2));
+
+theorem fun_uniq (G: ctx) {x: term} (A f B: term)
+  (h: $ G |- f: A -> B $):
+  $ G |- f = lam x A (ap f x): A -> B $ =
+  '(Pi_uniq h);
