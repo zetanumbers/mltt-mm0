@@ -382,3 +382,25 @@ theorem Pi_uniq_pr_2 (G: ctx) {x: term} (A f: term) (B: term x) (l: lvl) {.y: te
   (h2: $ G |- f: Pi x A B $):
   $ G |- lam x A (ap f x): Pi x A B $ =
   '(Pi_uniq_pr_2_lemma5 (! Pi_uniq_pr_2_lemma4 _ x y _ _ _ _ h1 h2));
+
+def fun (A B: term) {.x: term}: term = $ Pi x A B $;
+infixr fun: $->$ prec 30;
+
+theorem fun_form (G: ctx) (A B: term) (l: lvl) {.x: term}
+  (ha: $ G |- A: U l $)
+  (hb: $ G |- B: U l $):
+  $ G |- A -> B: U l $ =
+  '(Pi_form ha (! weakening_rightmost _ x _ _ _ _ ha hb));
+
+theorem fun_form_cong_1 (G: ctx) (A B C: term) (l: lvl) {.x: term}
+  (ha: $ G |- A: U l $)
+  (hab: $ G |- A = B: U l $)
+  (hc: $ G |- C: U l $):
+  $ G |- A -> C = B -> C: U l $ =
+  '(Pi_form_cong_1 hab (! weakening_rightmost _ x _ _ _ _ ha hc));
+
+theorem fun_form_cong_2 (G: ctx) (A B C: term) (l: lvl) {.x: term}
+  (ha: $ G |- A: U l $)
+  (hbc: $ G |- B = C: U l $):
+  $ G |- A -> B = A -> C: U l $ =
+  '(Pi_form_cong_2 ha (! weakening_rightmost _ x _ _ _ _ ha hbc));
