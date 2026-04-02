@@ -346,39 +346,14 @@ axiom Pi_uniq (G: ctx) {x: term} (A f: term) (B: term x):
   $ G |- f: Pi x A B $ >
   $ G |- f = lam x A (ap f x): Pi x A B $;
 
-theorem Pi_uniq_pr_2_lemma1 (G: ctx) {x0 x1: term} (A f: term) (B: term x0) (l: lvl)
-  (h1: $ G |- A: U l $)
-  (h2: $ G |- f: Pi x0 A B $):
-  $ G, x1: A |- ap f x1: sbst x0 x1 B $ =
-  '(Pi_elim (weakening_rightmost h1 h2) (vble_rightmost (ctx_ext h1)));
-
-theorem Pi_uniq_pr_2_lemma2 (G: ctx) {x0 x1: term} (A f: term) (B: term x1)
-  (h: $ G |- f: Pi x1 A B $):
-  $ G |- f: Pi x0 A (sbst x1 x0 B) $ =
-  '(rewrite_type Pi_alpha h);
-
-theorem Pi_uniq_pr_2_lemma3 (G: ctx) {x0 x1 x2: term} (A f: term) (B: term x2) (l: lvl)
-  (h1: $ G |- A: U l $)
-  (h2: $ G |- f: Pi x2 A B $):
-  $ G |- lam x1 A (ap f x1): Pi x1 A (sbst x0 x1 (sbst x2 x0 B)) $ =
-  '(Pi_intro (Pi_uniq_pr_2_lemma1 h1 (Pi_uniq_pr_2_lemma2 h2)));
-
-theorem Pi_uniq_pr_2_lemma4 (G: ctx) {x0 x1: term} (A f: term) (B: term x0) (l: lvl) {.x2: term}
-  (h1: $ G |- A: U l $)
-  (h2: $ G |- f: Pi x0 A B $):
-  $ G |- lam x1 A (ap f x1): Pi x1 A (sbst x0 x1 B) $ =
-  '(rewrite_type (rwt_Pi rwt_refl sbst_reduce) (! Pi_uniq_pr_2_lemma3 _ x2 _ x0 _ _ _ _ h1 h2));
-
-theorem Pi_uniq_pr_2_lemma5 (G: ctx) {x0 x1: term} (A f: term) (B: term x0)
-  (h: $ G |- lam x1 A (ap f x1): Pi x1 A (sbst x0 x1 B) $):
-  $ G |- lam x0 A (ap f x0): Pi x0 A B $ =
-  '(rewrite_term (rwt_trans lam_alpha (rwt_lam rwt_refl (rwt_trans sbst_ap (rwt_ap sbst_const sbst_var)))) @ rewrite_type (rwt_sym Pi_alpha) h);
-
 theorem Pi_uniq_pr_2 (G: ctx) {x: term} (A f: term) (B: term x) (l: lvl) {.y: term}
   (h1: $ G |- A: U l $)
   (h2: $ G |- f: Pi x A B $):
   $ G |- lam x A (ap f x): Pi x A B $ =
-  '(Pi_uniq_pr_2_lemma5 (! Pi_uniq_pr_2_lemma4 _ x y _ _ _ _ h1 h2));
+  '(rewrite_type (rwt_sym Pi_alpha) @ rewrite_term (rwt_sym lam_alpha) @ Pi_intro
+    (rewrite_term (rwt_sym @ rwt_trans sbst_ap (rwt_ap sbst_const sbst_var)) @ Pi_elim
+      (weakening_rightmost h1 h2)
+      (vble_rightmost (! ctx_ext _ y _ _ h1))));
 
 def fun (A B: term) {.x: term}: term = $ Pi x A B $;
 infixr fun: $->$ prec 30;
