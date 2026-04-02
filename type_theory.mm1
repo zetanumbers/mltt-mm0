@@ -256,9 +256,6 @@ axiom sbst_Pi {x y: term} (a B: term) (C: term x):
 axiom Pi_alpha {x y: term} (A: term) (B: term x):
   $ rwt (Pi x A B) (Pi y A (sbst x y B)) $;
 
--- axiom rwt_Pi_bound {x: term} (a: term) (B C: term x):
---   $ rwt (sbst x a (Pi x B C)) (Pi x B C) $;
-
 axiom Pi_form (G: ctx) {x: term} (A: term) (B: term x) (l: lvl):
   $ G |- A: U l $ >
   $ G, x: A |- B: U l $ >
