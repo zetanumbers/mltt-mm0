@@ -278,15 +278,10 @@ axiom Pi_form (G: ctx) {x: term} (A: term) (B: term x) (l: lvl):
   $ G, x: A |- B: U l $ >
   $ G |- Pi x A B: U l $;
 
-axiom Pi_form_cong_1 (G: ctx) {x: term} (A B: term) (C: term x) (l: lvl):
-  $ G |- A = B: U l $ >
-  $ G, x: A |- C: U l $ >
-  $ G |- Pi x A C = Pi x B C: U l $;
-
-axiom Pi_form_cong_2 (G: ctx) {x: term} (A: term) (B C: term x) (l: lvl):
-  $ G |- A: U l $ >
-  $ G, x: A |- B = C: U l $ >
-  $ G |- Pi x A B = Pi x A C: U l $;
+axiom Pi_form_cong (G: ctx) {x: term} (A0 A1: term) (B0 B1: term x) (l: lvl):
+  $ G |- A0 = A1: U l $ >
+  $ G, x: A0 |- B0 = B1: U l $ >
+  $ G |- Pi x A0 B0 = Pi x A1 B1: U l $;
 
 term lam {x: term} (A: term) (b: term x): term;
 
@@ -305,14 +300,10 @@ axiom Pi_intro (G: ctx) {x: term} (A: term) (b B: term x):
   $ G, x: A |- b: B $ >
   $ G |- lam x A b: Pi x A B $;
 
-axiom Pi_intro_cong_1 (G: ctx) {x: term} (A B: term) (c C: term x) (l: lvl):
-  $ G |- A = B: U l $ >
-  $ G, x: A |- c: C $ >
-  $ G |- lam x A c = lam x B c: Pi x A C $;
-
-axiom Pi_intro_cong_2 (G: ctx) {x: term} (A: term) (b c B: term x):
-  $ G, x: A |- b = c: B $ >
-  $ G |- lam x A b = lam x A c: Pi x A B $;
+axiom Pi_intro_cong (G: ctx) {x: term} (A0 A1: term) (b0 b1 B: term x) (l: lvl):
+  $ G |- A0 = A1: U l $ >
+  $ G, x: A0 |- b0 = b1: B $ >
+  $ G |- lam x A0 b0 = lam x A1 b1: Pi x A0 B $;
 
 term ap (a b: term): term;
 
@@ -329,15 +320,10 @@ axiom Pi_elim (G: ctx) {x: term} (a A f: term) (B: term x):
   $ G |- a: A $ >
   $ G |- ap f a: sbst x a B $;
 
-axiom Pi_elim_cong_1 (G: ctx) {x: term} (a A f g : term) (B: term x):
-  $ G |- f = g: Pi x A B $ >
-  $ G |- a: A $ >
-  $ G |- ap f a = ap g a: sbst x a B $;
-
-axiom Pi_elim_cong_2 (G: ctx) {x: term} (a b A f: term) (C: term x):
-  $ G |- f: Pi x A C $ >
-  $ G |- a = b: A $ >
-  $ G |- ap f a = ap f b: sbst x a C $;
+axiom Pi_elim_cong (G: ctx) {x: term} (a0 a1 A f0 f1: term) (B: term x):
+  $ G |- f0 = f1: Pi x A B $ >
+  $ G |- a0 = a1: A $ >
+  $ G |- ap f0 a0 = ap f1 a1: sbst x a0 B $;
 
 axiom Pi_comp (G: ctx) {x: term} (a A: term) (b B: term x):
   $ G, x: A |- b: B $ >
@@ -378,52 +364,35 @@ theorem fun_form (G: ctx) (A B: term) (l: lvl) {.x: term}
   $ G |- A -> B: U l $ =
   '(Pi_form ha (! weakening_rightmost _ x _ _ _ _ ha hb));
 
-theorem fun_form_cong_1 (G: ctx) (A B C: term) (l: lvl) {.x: term}
-  (ha: $ G |- A: U l $)
-  (hab: $ G |- A = B: U l $)
-  (hc: $ G |- C: U l $):
-  $ G |- A -> C = B -> C: U l $ =
-  '(Pi_form_cong_1 hab (! weakening_rightmost _ x _ _ _ _ ha hc));
-
-theorem fun_form_cong_2 (G: ctx) (A B C: term) (l: lvl) {.x: term}
-  (ha: $ G |- A: U l $)
-  (hbc: $ G |- B = C: U l $):
-  $ G |- A -> B = A -> C: U l $ =
-  '(Pi_form_cong_2 ha (! weakening_rightmost _ x _ _ _ _ ha hbc));
+theorem fun_form_cong (G: ctx) (A0 A1 B0 B1: term) (l: lvl) {.x: term}
+  (ha: $ G |- A0: U l $)
+  (hab: $ G |- A0 = A1: U l $)
+  (hc: $ G |- B0 = B1: U l $):
+  $ G |- A0 -> B0 = A1 -> B1: U l $ =
+  '(Pi_form_cong hab (! weakening_rightmost _ x _ _ _ _ ha hc));
 
 theorem fun_intro (G: ctx) {x: term} (A B: term) (b: term x)
   (h: $ G, x: A |- b: B $):
   $ G |- lam x A b: A -> B $ =
   '(Pi_intro h);
 
-theorem fun_intro_cong_1 (G: ctx) {x: term} (A B C: term) (c: term x) (l: lvl)
-  (h1: $ G |- A = B: U l $)
-  (h2: $ G, x: A |- c: C $):
-  $ G |- lam x A c = lam x B c: A -> C $ =
-  '(Pi_intro_cong_1 h1 h2);
-
-theorem fun_intro_cong_2 (G: ctx) {x: term} (A B: term) (b c: term x)
-  (h: $ G, x: A |- b = c: B $):
-  $ G |- lam x A b = lam x A c: A -> B $ =
-  '(Pi_intro_cong_2 h);
+theorem fun_intro_cong (G: ctx) {x: term} (A0 A1 B: term) (b0 b1: term x) (l: lvl)
+  (ha: $ G |- A0 = A1: U l $)
+  (hb: $ G, x: A0 |- b0 = b1: B $):
+  $ G |- lam x A0 b0 = lam x A1 b1: A0 -> B $ =
+  '(Pi_intro_cong ha hb);
 
 theorem fun_elim (G: ctx) (a A f B: term) {.x: term}
-  (h1: $ G |- f: A -> B $)
-  (h2: $ G |- a: A $):
+  (hf: $ G |- f: A -> B $)
+  (ha: $ G |- a: A $):
   $ G |- ap f a: B $ =
-  '(rewrite_type sbst_const (! Pi_elim _ x _ _ _ _ h1 h2));
+  '(rewrite_type sbst_const (! Pi_elim _ x _ _ _ _ hf ha));
 
-theorem fun_elim_cong_1 (G: ctx) (a A f g B: term) {.x: term}
-  (h1: $ G |- f = g: A -> B $)
-  (h2: $ G |- a: A $):
-  $ G |- ap f a = ap g a: B $ =
-  '(rewrite_type sbst_const (! Pi_elim_cong_1 _ x _ _ _ _ _ h1 h2));
-
-theorem fun_elim_cong_2 (G: ctx) (a b A f C: term) {.x: term}
-  (h1: $ G |- f: A -> C $)
-  (h2: $ G |- a = b: A $):
-  $ G |- ap f a = ap f b: C $ =
-  '(rewrite_type sbst_const (! Pi_elim_cong_2 _ x _ _ _ _ _ h1 h2));
+theorem fun_elim_cong (G: ctx) (a0 a1 A f0 f1 B: term) {.x: term}
+  (hf: $ G |- f0 = f1: A -> B $)
+  (ha: $ G |- a0 = a1: A $):
+  $ G |- ap f0 a0 = ap f1 a1: B $ =
+  '(rewrite_type sbst_const (! Pi_elim_cong _ x _ _ _ _ _ _ hf ha));
 
 theorem fun_comp (G: ctx) {x: term} (a A B: term) (b: term x)
   (h1: $ G, x: A |- b: B $)
@@ -454,15 +423,10 @@ axiom Sigma_form (G: ctx) {x: term} (A: term) (B: term x) (l: lvl):
   $ G, x: A |- B: U l $ >
   $ G |- Sigma x A B: U l $;
 
-axiom Sigma_form_cong_1 (G: ctx) {x: term} (A B: term) (C: term x) (l: lvl):
-  $ G |- A = B: U l $ >
-  $ G, x: A |- C: U l $ >
-  $ G |- Sigma x A C = Sigma x B C: U l $;
-
-axiom Sigma_form_cong_2 (G: ctx) {x: term} (A: term) (B C: term x) (l: lvl):
-  $ G |- A: U l $ >
-  $ G, x: A |- B = C: U l $ >
-  $ G |- Sigma x A B = Sigma x A C: U l $;
+axiom Sigma_form_cong (G: ctx) {x: term} (A0 A1: term) (B0 B1: term x) (l: lvl):
+  $ G |- A0 = A1: U l $ >
+  $ G, x: A0 |- B0 = B1: U l $ >
+  $ G |- Sigma x A0 B0 = Sigma x A1 B1: U l $;
 
 term pair (a b: term): term;
 
@@ -472,17 +436,11 @@ axiom Sigma_intro (G: ctx) {x: term} (A a b: term) (B: term x) (l: lvl):
   $ G |- b: sbst x a B $ >
   $ G |- pair a b: Sigma x A B $;
 
-axiom Sigma_intro_cong_1 (G: ctx) {x: term} (A a b c: term) (C: term x) (l: lvl):
-  $ G, x: A |- C: U l $ >
-  $ G |- a = b: A $ >
-  $ G |- c: sbst x a C $ >
-  $ G |- pair a c = pair b c: Sigma x A C $;
-
-axiom Sigma_intro_cong_2 (G: ctx) {x: term} (A a b c: term) (B: term x) (l: lvl):
+axiom Sigma_intro_cong (G: ctx) {x: term} (A a0 a1 b0 b1: term) (B: term x) (l: lvl):
   $ G, x: A |- B: U l $ >
-  $ G |- a: A $ >
-  $ G |- b = c: sbst x a B $ >
-  $ G |- pair a b = pair a c: Sigma x A B $;
+  $ G |- a0 = a1: A $ >
+  $ G |- b0 = b1: sbst x a0 B $ >
+  $ G |- pair a0 b0 = pair a1 b1: Sigma x A B $;
 
 term ind_Sigma {x: term} (A: term) {y: term} (B: term x) {z: term} (g: term x y) (C: term z) (p: term): term;
 
@@ -512,23 +470,13 @@ axiom Sigma_elim (G: ctx) {x y z: term} (A p: term) (B: term x) (g: term x y) (C
   $ G |- p: Sigma x A B $ >
   $ G |- ind_Sigma x A y B z g C p: sbst z p C $;
 
-axiom Sigma_elim_cong_1 (G: ctx) {x y z: term} (A p: term) (B: term x) (g: term x y) (C D: term z) (l: lvl):
-  $ G, z: Sigma x A B |- C = D: U l $ >
-  $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
-  $ G |- p: Sigma x A B $ >
-  $ G |- ind_Sigma x A y B z g C p = ind_Sigma x A y B z g D p: sbst z p C $;
-
-axiom Sigma_elim_cong_2 (G: ctx) {x y z: term} (A p: term) (B: term x) (g h: term x y) (C: term z) (l: lvl):
-  $ G, z: Sigma x A B |- C: U l $ >
-  $ G, x: A, y: B |- g = h: sbst z (pair x y) C $ >
-  $ G |- p: Sigma x A B $ >
-  $ G |- ind_Sigma x A y B z g C p = ind_Sigma x A y B z h C p: sbst z p C $;
-
-axiom Sigma_elim_cong_3 (G: ctx) {x y z: term} (A p q: term) (B: term x) (g: term x y) (C: term z) (l: lvl):
-  $ G, z: Sigma x A B |- C: U l $ >
-  $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
-  $ G |- p = q: Sigma x A B $ >
-  $ G |- ind_Sigma x A y B z g C p = ind_Sigma x A y B z g C q: sbst z p C $;
+axiom Sigma_elim_cong (G: ctx) {x y z: term} (A0 A1 p0 p1: term) (B0 B1: term x) (g0 g1: term x y) (C0 C1: term z) (l: lvl):
+  $ G |- A0 = A1: U l $ >
+  $ G, x: A0 |- B0 = B1: U l $ >
+  $ G, z: Sigma x A0 B0 |- C0 = C1: U l $ >
+  $ G, x: A0, y: B0 |- g0 = g1: sbst z (pair x y) C0 $ >
+  $ G |- p0 = p1: Sigma x A0 B0 $ >
+  $ G |- ind_Sigma x A0 y B0 z g0 C0 p0 = ind_Sigma x A1 y B1 z g1 C1 p1: sbst z p0 C0 $;
 
 axiom Sigma_comp (G: ctx) {x y z: term} (A a b: term) (B: term x) (g: term x y) (C: term z) (l: lvl):
   $ G, z: Sigma x A B |- C: U l $ >
