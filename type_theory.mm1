@@ -435,3 +435,77 @@ theorem fun_uniq (G: ctx) {x: term} (A f B: term)
   (h: $ G |- f: A -> B $):
   $ G |- f = lam x A (ap f x): A -> B $ =
   '(Pi_uniq h);
+
+term Sigma {x: term} (A: term) (B: term x): term;
+
+axiom rwt_Sigma {x: term} (A C: term) (B D: term x):
+  $ rwt A C $ >
+  $ rwt B D $ >
+  $ rwt (Sigma x A B) (Sigma x C D) $;
+
+axiom sbst_Sigma {x y: term} (a B: term) (C: term x):
+  $ rwt (sbst x a (Sigma y B C)) (Sigma y (sbst x a B) (sbst x a C)) $;
+
+axiom Sigma_alpha {x y: term} (A: term) (B: term x):
+  $ rwt (Sigma x A B) (Sigma y A (sbst x y B)) $;
+
+axiom Sigma_form (G: ctx) {x: term} (A: term) (B: term x) (l: lvl):
+  $ G |- A: U l $ >
+  $ G, x: A |- B: U l $ >
+  $ G |- Sigma x A B: U l $;
+
+axiom Sigma_form_cong_1 (G: ctx) {x: term} (A B: term) (C: term x) (l: lvl):
+  $ G |- A = B: U l $ >
+  $ G, x: A |- C: U l $ >
+  $ G |- Sigma x A C = Sigma x B C: U l $;
+
+axiom Sigma_form_cong_2 (G: ctx) {x: term} (A: term) (B C: term x) (l: lvl):
+  $ G |- A: U l $ >
+  $ G, x: A |- B = C: U l $ >
+  $ G |- Sigma x A B = Sigma x A C: U l $;
+
+term pair (a b: term): term;
+
+axiom Sigma_intro (G: ctx) {x: term} (A a b: term) (B: term x) (l: lvl):
+  $ G, x: A |- B: U l $ >
+  $ G |- a: A $ >
+  $ G |- b: sbst x a B $ >
+  $ G |- pair a b: Sigma x A B $;
+
+axiom Sigma_intro_cong_1 (G: ctx) {x: term} (A a b c: term) (C: term x) (l: lvl):
+  $ G, x: A |- C: U l $ >
+  $ G |- a = b: A $ >
+  $ G |- c: sbst x a C $ >
+  $ G |- pair a c = pair b c: Sigma x A C $;
+
+axiom Sigma_intro_cong_2 (G: ctx) {x: term} (A a b c: term) (B: term x) (l: lvl):
+  $ G, x: A |- B: U l $ >
+  $ G |- a: A $ >
+  $ G |- b = c: sbst x a B $ >
+  $ G |- pair a b = pair a c: Sigma x A B $;
+
+term ind_Sigma {x: term} (A: term) (B: term x) {z: term} (C: term z) {y: term} (g: term x y) (p: term): term;
+
+axiom Sigma_elim (G: ctx) {x y z: term} (A p: term) (B: term x) (C: term z) (g: term x y) (l: lvl):
+  $ G, z: Sigma x A B |- C: U l $ >
+  $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
+  $ G |- p: Sigma x A B $ >
+  $ G |- ind_Sigma x A B z C y g p: sbst z p C $;
+
+axiom Sigma_elim_cong_1 (G: ctx) {x y z: term} (A p: term) (B: term x) (C D: term z) (g: term x y) (l: lvl):
+  $ G, z: Sigma x A B |- C = D: U l $ >
+  $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
+  $ G |- p: Sigma x A B $ >
+  $ G |- ind_Sigma x A B z C y g p = ind_Sigma x A B z D y g p: sbst z p C $;
+
+axiom Sigma_elim_cong_2 (G: ctx) {x y z: term} (A p: term) (B: term x) (C: term z) (g h: term x y) (l: lvl):
+  $ G, z: Sigma x A B |- C: U l $ >
+  $ G, x: A, y: B |- g = h: sbst z (pair x y) C $ >
+  $ G |- p: Sigma x A B $ >
+  $ G |- ind_Sigma x A B z C y g p = ind_Sigma x A B z C y h p: sbst z p C $;
+
+axiom Sigma_elim_cong_3 (G: ctx) {x y z: term} (A p q: term) (B: term x) (C: term z) (g: term x y) (l: lvl):
+  $ G, z: Sigma x A B |- C: U l $ >
+  $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
+  $ G |- p = q: Sigma x A B $ >
+  $ G |- ind_Sigma x A B z C y g p = ind_Sigma x A B z C y g q: sbst z p C $;
