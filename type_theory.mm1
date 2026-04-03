@@ -484,3 +484,12 @@ axiom Sigma_comp (G: ctx) {x y z: term} (A a b: term) (B: term x) (g: term x y) 
   $ G |- a: A $ >
   $ G |- b: sbst x a B $ >
   $ G |- ind_Sigma x A y B z g C (pair a b) = sbst x a (sbst y b g): sbst z (pair a b) C $;
+
+theorem ind_Sigma_typed {x y z A B C g p: term} (l m: lvl):
+  $ A: U l,
+    B: A -> U l,
+    C: Sigma x A (ap B x) -> U m,
+    g: Pi x A (Pi y (ap B x) (ap C (pair x y))),
+    p: Sigma x A (ap B x) |-
+    ind_Sigma x A y (ap B x) z (ap (ap g x) y) (ap C z) p: (ap C p) $ =
+    '(rewrite_type (rwt_trans sbst_ap @ rwt_ap sbst_const sbst_var) (Sigma_elim (weakening _ @ weakening _ (fun_elim _ (vble_rightmost _))) _ _));
