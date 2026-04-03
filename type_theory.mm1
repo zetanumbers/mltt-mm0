@@ -267,10 +267,10 @@ axiom rwt_Pi {x: term} (A C: term) (B D: term x):
   $ rwt B D $ >
   $ rwt (Pi x A B) (Pi x C D) $;
 
-axiom sbst_Pi {x y: term} (a B: term) (C: term x):
+axiom sbst_Pi {x y: term} (a: term) (B: term x) (C: term x y):
   $ rwt (sbst x a (Pi y B C)) (Pi y (sbst x a B) (sbst x a C)) $;
 
-axiom Pi_alpha {x y: term} (A: term) (B: term x):
+axiom alpha_Pi {x y: term} (A: term) (B: term x):
   $ rwt (Pi x A B) (Pi y A (sbst x y B)) $;
 
 axiom Pi_form (G: ctx) {x: term} (A: term) (B: term x) (l: lvl):
@@ -295,10 +295,10 @@ axiom rwt_lam {x: term} (A C: term) (b d: term x):
   $ rwt b d $ >
   $ rwt (lam x A b) (lam x C d) $;
 
-axiom sbst_lam {x y: term} (a: term) (B c: term x):
+axiom sbst_lam {x y: term} (a: term) (B: term x) (c: term x y):
   $ rwt (sbst x a (lam y B c)) (lam y (sbst x a B) (sbst x a c)) $;
 
-axiom lam_alpha {x y: term} (A: term) (b: term x):
+axiom alpha_lam {x y: term} (A: term) (b: term x):
   $ rwt (lam x A b) (lam y A (sbst x y b)) $;
 
 axiom Pi_intro (G: ctx) {x: term} (A: term) (b B: term x):
@@ -348,7 +348,7 @@ theorem Pi_comp_pr_1 (G: ctx) {x: term} (a A: term) (b B: term x) {.y: term}
   (h1: $ G, x: A |- b: B $)
   (h2: $ G |- a: A $):
   $ G |- ap (lam x A b) a: sbst x a B $ =
-  '(rewrite_type sbst_reduce (Pi_elim (rewrite_type (! Pi_alpha _ y) (Pi_intro h1)) h2));
+  '(rewrite_type sbst_reduce (Pi_elim (rewrite_type (! alpha_Pi _ y) (Pi_intro h1)) h2));
 
 theorem Pi_comp_pr_2 (G: ctx) {x: term} (a A: term) (b B: term x)
   (h1: $ G, x: A |- b: B $)
@@ -364,7 +364,7 @@ theorem Pi_uniq_pr_2 (G: ctx) {x: term} (A f: term) (B: term x) (l: lvl) {.y: te
   (h1: $ G |- A: U l $)
   (h2: $ G |- f: Pi x A B $):
   $ G |- lam x A (ap f x): Pi x A B $ =
-  '(rewrite_type (rwt_sym Pi_alpha) @ rewrite_term (rwt_sym lam_alpha) @ Pi_intro
+  '(rewrite_type (rwt_sym alpha_Pi) @ rewrite_term (rwt_sym alpha_lam) @ Pi_intro
     (rewrite_term (rwt_sym @ rwt_trans sbst_ap (rwt_ap sbst_const sbst_var)) @ Pi_elim
       (weakening_rightmost h1 h2)
       (vble_rightmost (! ctx_ext _ y _ _ h1))));
@@ -443,10 +443,10 @@ axiom rwt_Sigma {x: term} (A C: term) (B D: term x):
   $ rwt B D $ >
   $ rwt (Sigma x A B) (Sigma x C D) $;
 
-axiom sbst_Sigma {x y: term} (a B: term) (C: term x):
+axiom sbst_Sigma {x y: term} (a: term) (B: term x) (C: term x y):
   $ rwt (sbst x a (Sigma y B C)) (Sigma y (sbst x a B) (sbst x a C)) $;
 
-axiom Sigma_alpha {x y: term} (A: term) (B: term x):
+axiom alpha_Sigma {x y: term} (A: term) (B: term x):
   $ rwt (Sigma x A B) (Sigma y A (sbst x y B)) $;
 
 axiom Sigma_form (G: ctx) {x: term} (A: term) (B: term x) (l: lvl):
@@ -484,28 +484,55 @@ axiom Sigma_intro_cong_2 (G: ctx) {x: term} (A a b c: term) (B: term x) (l: lvl)
   $ G |- b = c: sbst x a B $ >
   $ G |- pair a b = pair a c: Sigma x A B $;
 
-term ind_Sigma {x: term} (A: term) (B: term x) {z: term} (C: term z) {y: term} (g: term x y) (p: term): term;
+term ind_Sigma {x: term} (A: term) {y: term} (B: term x) {z: term} (g: term x y) (C: term z) (p: term): term;
 
-axiom Sigma_elim (G: ctx) {x y z: term} (A p: term) (B: term x) (C: term z) (g: term x y) (l: lvl):
+axiom rwt_ind_Sigma {x y z: term} (A0 A1 p0 p1: term) (B0 B1: term x) (g0 g1: term x y) (C0 C1: term z):
+  $ rwt A0 A1 $ >
+  $ rwt B0 B1 $ >
+  $ rwt g0 g1 $ >
+  $ rwt C0 C1 $ >
+  $ rwt p0 p1 $ >
+  $ rwt (ind_Sigma x A0 y B0 z g0 C0 p0) (ind_Sigma x A1 y B1 z g1 C1 p1) $;
+
+axiom sbst_ind_Sigma {x y z w: term} (A p d: term w) (B: term x w) (g: term x y w) (C: term z w):
+  $ rwt (sbst w d (ind_Sigma x A y B z g C p)) (ind_Sigma x (sbst w d A) y (sbst w d B) z (sbst w d g) (sbst w d C) (sbst w d p)) $;
+
+axiom alpha_ind_Sigma_x {x0 x1 y z: term} (A p: term) (B: term x0) (g: term x0 y) (C: term z):
+  $ rwt (ind_Sigma x0 A y B z g C p) (ind_Sigma x1 A y (sbst x0 x1 B) z (sbst x0 x1 g) C p) $;
+
+axiom alpha_ind_Sigma_y {x y0 y1 z: term} (A p: term) (B: term x) (g: term x y0) (C: term z):
+  $ rwt (ind_Sigma x A y0 B z g C p) (ind_Sigma x A y1 B z (sbst y0 y1 g) C p) $;
+
+axiom alpha_ind_Sigma_z {x y z0 z1: term} (A p: term) (B: term x) (g: term x y) (C: term z0):
+  $ rwt (ind_Sigma x A y B z0 g C p) (ind_Sigma x A y B z1 g (sbst z0 z1 C) p) $;
+
+axiom Sigma_elim (G: ctx) {x y z: term} (A p: term) (B: term x) (g: term x y) (C: term z) (l: lvl):
   $ G, z: Sigma x A B |- C: U l $ >
   $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
   $ G |- p: Sigma x A B $ >
-  $ G |- ind_Sigma x A B z C y g p: sbst z p C $;
+  $ G |- ind_Sigma x A y B z g C p: sbst z p C $;
 
-axiom Sigma_elim_cong_1 (G: ctx) {x y z: term} (A p: term) (B: term x) (C D: term z) (g: term x y) (l: lvl):
+axiom Sigma_elim_cong_1 (G: ctx) {x y z: term} (A p: term) (B: term x) (g: term x y) (C D: term z) (l: lvl):
   $ G, z: Sigma x A B |- C = D: U l $ >
   $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
   $ G |- p: Sigma x A B $ >
-  $ G |- ind_Sigma x A B z C y g p = ind_Sigma x A B z D y g p: sbst z p C $;
+  $ G |- ind_Sigma x A y B z g C p = ind_Sigma x A y B z g D p: sbst z p C $;
 
-axiom Sigma_elim_cong_2 (G: ctx) {x y z: term} (A p: term) (B: term x) (C: term z) (g h: term x y) (l: lvl):
+axiom Sigma_elim_cong_2 (G: ctx) {x y z: term} (A p: term) (B: term x) (g h: term x y) (C: term z) (l: lvl):
   $ G, z: Sigma x A B |- C: U l $ >
   $ G, x: A, y: B |- g = h: sbst z (pair x y) C $ >
   $ G |- p: Sigma x A B $ >
-  $ G |- ind_Sigma x A B z C y g p = ind_Sigma x A B z C y h p: sbst z p C $;
+  $ G |- ind_Sigma x A y B z g C p = ind_Sigma x A y B z h C p: sbst z p C $;
 
-axiom Sigma_elim_cong_3 (G: ctx) {x y z: term} (A p q: term) (B: term x) (C: term z) (g: term x y) (l: lvl):
+axiom Sigma_elim_cong_3 (G: ctx) {x y z: term} (A p q: term) (B: term x) (g: term x y) (C: term z) (l: lvl):
   $ G, z: Sigma x A B |- C: U l $ >
   $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
   $ G |- p = q: Sigma x A B $ >
-  $ G |- ind_Sigma x A B z C y g p = ind_Sigma x A B z C y g q: sbst z p C $;
+  $ G |- ind_Sigma x A y B z g C p = ind_Sigma x A y B z g C q: sbst z p C $;
+
+axiom Sigma_comp (G: ctx) {x y z: term} (A a b: term) (B: term x) (g: term x y) (C: term z) (l: lvl):
+  $ G, z: Sigma x A B |- C: U l $ >
+  $ G, x: A, y: B |- g: sbst z (pair x y) C $ >
+  $ G |- a: A $ >
+  $ G |- b: sbst x a B $ >
+  $ G |- ind_Sigma x A y B z g C (pair a b) = sbst x a (sbst y b g): sbst z (pair a b) C $;
