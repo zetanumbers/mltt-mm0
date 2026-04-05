@@ -146,6 +146,9 @@ theorem sbstx_reduce {x y: term} (a: term) (b: ctx x):
 axiom sbstx_comma {x: term} (a: term) (G D: ctx x):
   $ rwtc (sbstx x a (G, D)) ((sbstx x a G), (sbstx x a D)) $;
 
+axiom sbstx_typed {x y: term} (a: term) (B: term x):
+  $ rwtc (sbstx x a (y: B)) (y: (sbst x a B)) $;
+
 axiom rewrite_ctx (G D: ctx) (c: consequent):
   $ rwtc G D $ >
   $ G |- c $ >
@@ -430,6 +433,14 @@ axiom Sigma_form_cong (G: ctx) {x: term} (A0 A1: term) (B0 B1: term x) (l: lvl):
 
 term pair (a b: term): term;
 
+axiom rwt_pair (a0 b0 a1 b1: term):
+  $ rwt a0 a1 $ >
+  $ rwt b0 b1 $ >
+  $ rwt (pair a0 b0) (pair a1 b1) $;
+
+axiom sbst_pair {x: term} (a: term) (b c: term x):
+  $ rwt (sbst x a (pair b c)) (pair (sbst x a b) (sbst x a c)) $;
+
 axiom Sigma_intro (G: ctx) {x: term} (A a b: term) (B: term x) (l: lvl):
   $ G, x: A |- B: U l $ >
   $ G |- a: A $ >
@@ -485,11 +496,19 @@ axiom Sigma_comp (G: ctx) {x y z: term} (A a b: term) (B: term x) (g: term x y) 
   $ G |- b: sbst x a B $ >
   $ G |- ind_Sigma x A y B z g C (pair a b) = sbst x a (sbst y b g): sbst z (pair a b) C $;
 
-theorem ind_Sigma_typed {x y z A B C g p: term} (l m: lvl):
-  $ A: U l,
-    B: A -> U l,
-    C: Sigma x A (ap B x) -> U m,
-    g: Pi x A (Pi y (ap B x) (ap C (pair x y))),
-    p: Sigma x A (ap B x) |-
-    ind_Sigma x A y (ap B x) z (ap (ap g x) y) (ap C z) p: (ap C p) $ =
-    '(rewrite_type (rwt_trans sbst_ap @ rwt_ap sbst_const sbst_var) (Sigma_elim (weakening _ @ weakening _ (fun_elim _ (vble_rightmost _))) _ _));
+theorem Sigma_elim_1 (G: ctx) {x y z p: term} (A: term) (B: term x) (g: term x y) (C: term z) (l: lvl) {.w: term}
+  (hA: $ G |- A: U l $)
+  (hS: $ G |- Sigma x A B: U l $)
+  (hC: $ G, z: Sigma x A B |- C: U l $)
+  (hg: $ G, x: A, y: B |- g: sbst z (pair x y) C $):
+  $ G, p: Sigma x A B |- ind_Sigma x A y B z g C p: sbst z p C $ =
+  '(rewrite_term (rwt_sym alpha_ind_Sigma_x) @ Sigma_elim (rewrite_ctx (rwtc_comma_r @ rwtc_ty alpha_Sigma) @ weakening hS hC) (rewrite_ctx (rwtc_comma_r @ sbstx_typed) @ rewrite_ctx ctx_assoc @ weakening hS @ rewrite_ctx ctx_assoc_inv @ rewrite_type (rwt_trans sbst_sbst @ rwt_sbst (rwt_trans sbst_pair @ rwt_pair sbst_var sbst_const) sbst_const) @ sbst_1 (vble_rightmost @ ctx_ext hA) @ rewrite_ctx ctx_assoc @ weakening hA @ rewrite_ctx ctx_assoc_inv hg) @ rewrite_type (! alpha_Sigma _ w) @ vble_rightmost @ ctx_ext hS);
+
+theorem Sigma_elim_2 (G: ctx) {x y z p: term} (A: term) (B: term x) (g: term x) (C: term z) (l: lvl) {.w .v: term}
+  (hA: $ G |- A: U l $)
+  (hB: $ G, x: A |- B: U l $)
+  (hS: $ G |- Sigma x A B: U l $)
+  (hC: $ G, z: Sigma x A B |- C: U l $)
+  (hg: $ G, x: A |- g: Pi y B (sbst z (pair x y) C) $):
+  $ G, p: Sigma x A B |- ind_Sigma x A y B z (ap g y) C p: sbst z p C $ =
+  '(Sigma_elim_1 hA hS hC @ rewrite_type (rwt_trans sbst_sbst @ rwt_sbst (rwt_trans sbst_pair @ rwt_pair sbst_const sbst_var) sbst_const) @ Pi_elim (rewrite_type (rwt_sym @ rwt_trans alpha_Pi @ rwt_Pi rwt_refl @ rwt_trans sbst_sbst @ rwt_sbst (rwt_trans sbst_pair @ rwt_pair sbst_const sbst_var) @ ! sbst_const w) @ weakening_rightmost hB @ rewrite_type (rwt_trans alpha_Pi @ ! rwt_Pi v _ _ _ _ rwt_refl @ rwt_trans sbst_sbst @ rwt_sbst (rwt_trans sbst_pair @ rwt_pair sbst_const sbst_var) sbst_const) hg) @ vble_rightmost @ ctx_ext hB);
